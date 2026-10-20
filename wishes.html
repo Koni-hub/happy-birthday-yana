@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#120b19" />
+  <meta name="description" content="Make a birthday wish with Yana, wander through her favorite photos, and read a letter written with love." />
+  <title>Your Birthday Wish · Yana ✦</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%82%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="styles.css?v=3" />
+</head>
+<body class="wishes-page">
+  <noscript><div class="noscript">This little birthday world needs JavaScript to come alive. Please enable it and refresh. ♥</div></noscript>
+
+  <div class="loader" id="loader" aria-hidden="true">
+    <div class="loader-orb"><span>Y</span></div>
+    <p class="loader-title">lighting the candles for you</p>
+    <div class="loader-line"><i></i></div>
+  </div>
+
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="site-header" id="site-header">
+    <a class="brand" href="index.html" aria-label="Back to the birthday girl">
+      <span class="brand-mark">✦</span>
+      <span>For Yana</span>
+      <span class="brand-sub">a birthday in three wishes</span>
+    </a>
+    <nav class="main-nav" aria-label="Birthday chapters">
+      <a href="index.html" data-nav="girls">01 <span>The girl</span></a>
+      <a href="#wish" data-nav="wish" class="is-active">02 <span>Wish</span></a>
+      <a href="#memories" data-nav="memories">03 <span>Memories</span></a>
+      <a href="#letter" data-nav="letter">04 <span>Love</span></a>
+    </nav>
+    <button class="sound-toggle" id="sound-toggle" type="button" aria-pressed="false" aria-label="Turn birthday music on">
+      <span class="sound-bars" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="sound-label">Sound off</span>
+    </button>
+  </header>
+
+  <aside class="section-dots" aria-label="Page sections">
+    <a href="index.html" data-dot="girls" aria-label="The birthday girl"><span>01</span></a>
+    <a href="#wish" data-dot="wish" class="is-active" aria-label="Make a wish"><span>02</span></a>
+    <a href="#memories" data-dot="memories" aria-label="Memories"><span>03</span></a>
+    <a href="#letter" data-dot="letter" aria-label="A letter for you"><span>04</span></a>
+  </aside>
+
+  <main>
+    <!-- 02 — THE CAKE -->
+    <section class="wish" id="wish" data-section="wish">
+      <div class="wish-glow" aria-hidden="true"></div>
+      <div class="wish-copy">
+        <p class="eyebrow reveal"><span class="eyebrow-star">✦</span> Chapter two · the cake</p>
+        <h2 class="section-title">Close your eyes.<br /><em>Make a wish.</em></h2>
+        <p class="lede">Five candles, one wish. Tap each little flame — or press space and let me blow them out for you.</p>
+
+        <div class="wish-instructions" aria-label="How to interact">
+          <span><b>01</b> Tap a flame</span>
+          <span><b>02</b> Drag to spin the cake</span>
+          <span><b>03</b> Press space to blow</span>
+        </div>
+
+        <div class="wish-actions">
+          <button class="btn btn-ghost btn-small" id="relight-button" type="button" hidden>Light them again</button>
+        </div>
+
+        <p class="candle-status" id="candle-status" aria-live="polite"><span class="status-dot"></span> Five candles still glowing</p>
+
+        <div class="wish-complete" id="wish-complete" aria-live="polite">
+          <p class="wish-complete-kicker">✦ wish sealed ✦</p>
+          <h3>I hope it comes true.</h3>
+          <p>And if it doesn’t, I’ll spend the whole year trying to make it happen anyway.</p>
+          <a class="text-link" href="#memories">Keep scrolling, my love <span>→</span></a>
+        </div>
+      </div>
+
+      <div class="wish-stage" id="wish-stage">
+        <canvas id="cake-canvas" aria-label="An interactive three-dimensional pink birthday cake with five candles"></canvas>
+        <p class="wish-stage-note" id="wish-stage-note" aria-hidden="true">tap the flames</p>
+      </div>
+    </section>
+
+    <!-- 03 — MEMORIES -->
+    <section class="memories" id="memories" data-section="memories">
+      <div class="memories-aura" aria-hidden="true"></div>
+      <div class="memories-heading">
+        <p class="eyebrow reveal"><span class="eyebrow-star">✦</span> Chapter three · the gallery</p>
+        <h2 class="section-title dark">Every version of you<br /><em>is my favorite.</em></h2>
+        <p class="memories-sub">A few stolen moments, saved forever. Drag the carousel and hold one a little closer.</p>
+      </div>
+
+      <div class="carousel" id="photo-carousel">
+        <div class="carousel-ring" id="carousel-ring">
+          <button class="polaroid" style="--i:0" type="button" data-photo="0" aria-label="Open photo: my favorite view">
+            <span class="photo-frame"><img src="assets/yana-pro.jpg" alt="Yana looking softly at the camera" loading="eager" /></span>
+            <span class="polaroid-caption">my favorite view</span>
+            <span class="photo-tape" aria-hidden="true"></span>
+          </button>
+          <button class="polaroid" style="--i:1" type="button" data-photo="1" aria-label="Open photo: golden hour, golden girl">
+            <span class="photo-frame"><img src="assets/yana-wife.jpg" alt="Yana in warm golden light" loading="lazy" /></span>
+            <span class="polaroid-caption">golden hour, golden girl</span>
+            <span class="photo-tape" aria-hidden="true"></span>
+          </button>
+          <button class="polaroid" style="--i:2" type="button" data-photo="2" aria-label="Open photo: the softest hello">
+            <span class="photo-frame"><img src="assets/yana-wifey.jpg" alt="Yana in a fluffy white hat" loading="lazy" /></span>
+            <span class="polaroid-caption">the softest hello</span>
+            <span class="photo-tape" aria-hidden="true"></span>
+          </button>
+          <button class="polaroid" style="--i:3" type="button" data-photo="3" aria-label="Open photo: winter wishes">
+            <span class="photo-frame"><img src="assets/yana-with-hat.jpg" alt="Yana wearing a fuzzy white hat and making a peace sign" loading="lazy" /></span>
+            <span class="polaroid-caption">winter wishes</span>
+            <span class="photo-tape" aria-hidden="true"></span>
+          </button>
+          <button class="polaroid" style="--i:4" type="button" data-photo="4" aria-label="Open photo: you plus plushies equals joy">
+            <span class="photo-frame"><img src="assets/yana-with-pink-cat.jpg" alt="Yana holding a giant pink and white plush cat" loading="lazy" /></span>
+            <span class="polaroid-caption">you + plushies = joy</span>
+            <span class="photo-tape" aria-hidden="true"></span>
+          </button>
+          <button class="polaroid" style="--i:5" type="button" data-photo="5" aria-label="Open photo: three ways to make me smile">
+            <span class="photo-frame"><img src="assets/yana-3-shot-pinkish.jpg" alt="Three soft-focus portraits of Yana in a white hat" loading="lazy" /></span>
+            <span class="polaroid-caption">three ways to make me smile</span>
+            <span class="photo-tape" aria-hidden="true"></span>
+          </button>
+          <button class="polaroid" style="--i:6" type="button" data-photo="6" aria-label="Open photo: midnight blue">
+            <span class="photo-frame"><img src="assets/yana-3-shot-blueish.jpg" alt="Three blue-toned portraits of Yana" loading="lazy" /></span>
+            <span class="polaroid-caption">midnight blue</span>
+            <span class="photo-tape" aria-hidden="true"></span>
+          </button>
+          <button class="polaroid" style="--i:7" type="button" data-photo="7" aria-label="Open photo: peace, love and you">
+            <span class="photo-frame"><img src="assets/yana-glasses.png" alt="Yana in a maroon top with glasses on her head, making a peace sign" loading="lazy" /></span>
+            <span class="polaroid-caption">peace, love &amp; you</span>
+            <span class="photo-tape" aria-hidden="true"></span>
+          </button>
+          <button class="polaroid" style="--i:8" type="button" data-photo="8" aria-label="Open photo: my pretty girl">
+            <span class="photo-frame"><img src="assets/yana-school.png" alt="Two portraits of Yana in a red checkered top with a heart sticker" loading="lazy" /></span>
+            <span class="polaroid-caption">my pretty girl</span>
+            <span class="photo-tape" aria-hidden="true"></span>
+          </button>
+          <button class="polaroid" style="--i:9" type="button" data-photo="9" aria-label="Open photo: i love me, i love you">
+            <span class="photo-frame"><img src="assets/yana-love-me.png" alt="Yana taking a mirror selfie in a red top, with the caption I love me" loading="lazy" /></span>
+            <span class="polaroid-caption">i love me, i love you</span>
+            <span class="photo-tape" aria-hidden="true"></span>
+          </button>
+          <button class="polaroid" style="--i:10" type="button" data-photo="10" aria-label="Open photo: soft light, softer you">
+            <span class="photo-frame"><img src="assets/yana-cutie.png" alt="Two soft portraits of Yana in a fuzzy bucket hat" loading="lazy" /></span>
+            <span class="polaroid-caption">soft light, softer you</span>
+            <span class="photo-tape" aria-hidden="true"></span>
+          </button>
+          <button class="polaroid" style="--i:11" type="button" data-photo="11" aria-label="Open photo: my favorite silly face">
+            <span class="photo-frame"><img src="assets/yana-cute.png" alt="Four close-up portraits of Yana making a playful face" loading="lazy" /></span>
+            <span class="polaroid-caption">my favorite silly face</span>
+            <span class="photo-tape" aria-hidden="true"></span>
+          </button>
+          <button class="polaroid" style="--i:12" type="button" data-photo="12" aria-label="Open photo: the hat stays on">
+            <span class="photo-frame"><img src="assets/yana-cute-hat.png" alt="Four close-up portraits of Yana in a fuzzy bucket hat" loading="lazy" /></span>
+            <span class="polaroid-caption">the hat stays on</span>
+            <span class="photo-tape" aria-hidden="true"></span>
+          </button>
+          <button class="polaroid" style="--i:13" type="button" data-photo="13" aria-label="Open photo: four ways to fall for you">
+            <span class="photo-frame"><img src="assets/yana-four-pics.png" alt="Four soft portraits of Yana in a fuzzy hat" loading="lazy" /></span>
+            <span class="polaroid-caption">four ways to fall for you</span>
+            <span class="photo-tape" aria-hidden="true"></span>
+          </button>
+          <button class="polaroid" style="--i:14" type="button" data-photo="14" aria-label="Open photo: midnight you">
+            <span class="photo-frame"><img src="assets/yana-love.png" alt="Two moody low-light portraits of Yana in a fuzzy bucket hat" loading="lazy" /></span>
+            <span class="polaroid-caption">midnight you</span>
+            <span class="photo-tape" aria-hidden="true"></span>
+          </button>
+          <button class="polaroid" style="--i:15" type="button" data-photo="15" aria-label="Open photo: a whole grid of you">
+            <span class="photo-frame"><img src="assets/yana-six-photo.png" alt="A collage of many portraits of Yana in a black top" loading="lazy" /></span>
+            <span class="polaroid-caption">a whole grid of you</span>
+            <span class="photo-tape" aria-hidden="true"></span>
+          </button>
+        </div>
+      </div>
+
+      <div class="carousel-footer">
+        <p class="carousel-hint"><span>↔</span> drag to spin · tap a photo to hold it closer</p>
+        <a class="text-link dark-link" href="#letter">One last little thing <span>→</span></a>
+      </div>
+    </section>
+
+    <!-- 04 — LOVE LETTER -->
+    <section class="letter" id="letter" data-section="letter">
+      <div class="letter-stars" aria-hidden="true"></div>
+      <div class="letter-heart" aria-hidden="true">
+        <svg viewBox="0 0 200 180" role="presentation">
+          <defs>
+            <linearGradient id="heart-gradient" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#f9c1cc" />
+              <stop offset="0.55" stop-color="#ee8fa6" />
+              <stop offset="1" stop-color="#d97791" />
+            </linearGradient>
+          </defs>
+          <path d="M100 169C78 149 10 103 10 55 10 24 34 8 57 8c18 0 33 10 43 26C110 18 125 8 143 8c23 0 47 16 47 47 0 48-68 94-90 114Z" />
+          <path class="heart-highlight" d="M48 39c-12 3-19 14-18 27" />
+        </svg>
+      </div>
+
+      <div class="letter-inner">
+        <p class="eyebrow light reveal"><span class="eyebrow-star">✦</span> The last little thing</p>
+        <h2 class="letter-title">Happy birthday,<br /><em>my love.</em></h2>
+
+        <article class="letter-card">
+          <div class="letter-portrait">
+            <div class="portrait-ring">
+              <img src="assets/yana-pro.jpg" alt="A portrait of Yana" loading="lazy" />
+            </div>
+            <span>the birthday girl</span>
+          </div>
+          <div class="letter-body">
+            <p class="letter-salutation">My dearest Yana,</p>
+            <p>Today the world gets to celebrate the person who makes my world make sense. I hope you know how deeply you are loved — not just today, but in all the quiet in-between moments too.</p>
+            <p>Thank you for your soft heart, your ridiculous cuteness, your laugh, and the way you make even an ordinary Tuesday feel like something worth remembering. I would choose you in every universe, in every lifetime, in every version of this story.</p>
+            <p>Here’s to a year that is gentle with you, wildly generous with your dreams, and full of cake, cats, and reasons to smile.</p>
+            <p class="letter-signoff">I love you. Always.</p>
+            <div class="letter-signature">
+              <span>Forever yours,</span>
+              <em>your favorite person</em>
+            </div>
+            <p class="letter-ps">P.S. You’re still my favorite wish.</p>
+            <button class="note-button" id="personal-note-button" type="button" aria-haspopup="dialog" aria-controls="personal-note">
+              <span class="note-button-star" aria-hidden="true">✦</span>
+              <span>Read my personal note</span>
+              <span class="note-button-arrow" aria-hidden="true">→</span>
+            </button>
+          </div>
+        </article>
+
+        <div class="letter-actions">
+          <button class="btn btn-primary kiss-button" id="kiss-button" type="button">
+            <span>Send a birthday kiss</span>
+            <span aria-hidden="true">♡</span>
+          </button>
+          <a class="btn btn-ghost" href="index.html">Do it all again <span aria-hidden="true">↺</span></a>
+        </div>
+        <p class="final-note">made with too much love &amp; a little bit of JavaScript <span>✦</span> for Yana, always</p>
+      </div>
+    </section>
+  </main>
+
+  <div class="note-modal" id="personal-note" role="dialog" aria-modal="true" aria-labelledby="personal-note-title" aria-hidden="true">
+    <div class="note-backdrop" data-note-close></div>
+    <article class="note-card">
+      <button class="note-close" id="personal-note-close" type="button" aria-label="Close personal note">×</button>
+      <p class="note-kicker">✦ just between us ✦</p>
+      <h2 class="note-title" id="personal-note-title">A note for you,<br /><em>only you.</em></h2>
+      <div class="note-copy">
+        <p class="note-salutation">My Yana,</p>
+        <p>There are some things I want to say that don’t fit inside a birthday card — so I’m keeping them here, just for you.</p>
+        <p>Thank you for being the person I look for in every room. For the way you care so gently, even when you’re tired. For every little thing you do without realizing anyone notices. I notice. I always notice.</p>
+        <p>If I could give you one thing today, it would be the ability to see yourself the way I do: soft, strong, a little ridiculous, and so deeply worthy of every good thing.</p>
+        <p>This year, I hope you let yourself be loved as much as you love everyone else. And on the days you can’t quite believe in yourself, borrow my belief for a while — I have more than enough for both of us.</p>
+        <p>Happy birthday, my favorite person. I’m so glad the world has you, and even gladder that I get to love you.</p>
+      </div>
+      <p class="note-signoff">Always,<br /><em>your favorite person</em></p>
+    </article>
+  </div>
+
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Photo viewer" aria-hidden="true">
+    <button class="lightbox-close" id="lightbox-close" type="button" aria-label="Close photo">×</button>
+    <figure class="lightbox-figure">
+      <img id="lightbox-image" src="" alt="" />
+      <figcaption id="lightbox-caption"></figcaption>
+    </figure>
+  </div>
+
+  <canvas class="confetti-canvas" id="confetti-canvas" aria-hidden="true"></canvas>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    // Friendly safety net: never leave the page hidden behind the loader.
+    setTimeout(function () {
+      var loader = document.getElementById('loader');
+      if (loader) loader.classList.add('is-hidden');
+    }, 6500);
+  </script>
+  <script src="vendor/three.global.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>

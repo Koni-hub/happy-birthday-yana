@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#120b19" />
+  <meta name="description" content="A little three-dimensional birthday surprise for Yana. Tap anywhere to begin." />
+  <title>Happy Birthday, Yana ✦</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%82%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="styles.css?v=3" />
+</head>
+<body class="landing-page">
+  <noscript><div class="noscript">This little birthday world needs JavaScript to come alive. Please enable it and refresh. ♥</div></noscript>
+
+  <div class="loader" id="loader" aria-hidden="true">
+    <div class="loader-orb"><span>Y</span></div>
+    <p class="loader-title">setting the table for something special</p>
+    <div class="loader-line"><i></i></div>
+  </div>
+
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="site-header" id="site-header">
+    <a class="brand" href="index.html" aria-label="For Yana — home">
+      <span class="brand-mark">✦</span>
+      <span>For Yana</span>
+      <span class="brand-sub">a birthday in three wishes</span>
+    </a>
+    <button class="sound-toggle" id="sound-toggle" type="button" aria-pressed="false" aria-label="Turn birthday music on">
+      <span class="sound-bars" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="sound-label">Sound off</span>
+    </button>
+  </header>
+
+  <main>
+    <!-- 01 — THE BIRTHDAY GIRL -->
+    <section class="hero landing-hero" id="girls" data-section="girls">
+      <div class="hero-copy">
+        <p class="eyebrow reveal"><span class="eyebrow-star">✦</span> A little birthday universe</p>
+        <h1 class="hero-title">
+          <span class="title-line"><span>Happy</span></span>
+          <span class="title-line"><em>Birthday,</em></span>
+          <span class="title-line title-name"><span>Yana</span></span>
+        </h1>
+        <p class="lede reveal">Your birthday girl is waiting with a little pink cake and a whole sky of wishes. Tap anywhere to begin.</p>
+        <p class="hero-note reveal"><span>✦</span> Tap anywhere to begin · drag her little world to orbit</p>
+      </div>
+
+      <div class="hero-visual" id="girls-stage">
+        <div class="stage-aura" aria-hidden="true"></div>
+        <canvas id="girls-canvas" tabindex="0" role="button" aria-label="An interactive 3D birthday girl in a pink dress holding a pink birthday cake. Tap or press Enter to open your surprise."></canvas>
+        <div class="stage-caption" aria-hidden="true">
+          <span>one birthday girl</span>
+          <i></i>
+          <span>one wish</span>
+        </div>
+        <!-- The real photo referenced for the 3D birthday girl: fluffy white hat, dark hair. -->
+        <button class="reference-photo" id="reference-photo-button" type="button" aria-label="View the reference photo of Yana full screen">
+          <span class="reference-tape" aria-hidden="true"></span>
+          <span class="reference-expand" aria-hidden="true">⤢</span>
+          <img src="assets/yana-wifey.jpg" alt="Reference photo of Yana in a fluffy white hat and dark top" loading="eager" />
+          <span class="reference-caption">the real Yana</span>
+        </button>
+        <div class="stage-hint" aria-hidden="true"><span class="drag-icon">✦</span> tap anywhere to begin</div>
+      </div>
+
+      <div class="scroll-cue landing-cue" aria-hidden="true">
+        <span>a surprise is waiting</span>
+        <i></i>
+      </div>
+    </section>
+  </main>
+
+  <div class="reference-viewer" id="reference-viewer" role="dialog" aria-modal="true" aria-label="Reference photo of Yana" aria-hidden="true">
+    <button class="reference-viewer-close" id="reference-viewer-close" type="button" aria-label="Close reference photo">×</button>
+    <figure class="reference-viewer-figure">
+      <img src="assets/yana-wifey.jpg" alt="Reference photo of Yana in a fluffy white hat and dark top" />
+      <figcaption>the reference · the real Yana</figcaption>
+    </figure>
+  </div>
+
+  <div class="page-transition" id="page-transition" aria-hidden="true">
+    <div class="transition-orb"><span>✦</span></div>
+    <p>opening your birthday surprise</p>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    // Friendly safety net: never leave the page hidden behind the loader.
+    setTimeout(function () {
+      var loader = document.getElementById('loader');
+      if (loader) loader.classList.add('is-hidden');
+    }, 6500);
+  </script>
+  <script src="vendor/three.global.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
