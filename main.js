@@ -1,5 +1,5 @@
 /* ============================================================
-   For Yana — a birthday in three wishes
+   For Yana — wishes, memories & love
    Vanilla JS + Three.js (classic build, so it runs from a file)
    ============================================================ */
 (function () {
@@ -16,9 +16,12 @@
 
   if (!THREE) {
     console.error('Three.js did not load.');
-    document.body.classList.add('is-ready');
-    const loader = $('#loader');
-    if (loader) loader.classList.add('is-hidden');
+    document.body.classList.add('is-ready', 'has-no-3d');
+    if (window.YanaLoader) window.YanaLoader.finish();
+    else {
+      const loader = $('#loader');
+      if (loader) loader.classList.add('is-hidden');
+    }
     return;
   }
 
@@ -599,7 +602,7 @@
       antialias: true,
       powerPreference: 'high-performance'
     });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.08;
@@ -2848,44 +2851,42 @@
   /* ————————————————————————————————
      Boot + render loop
      ———————————————————————————————— */
+  function wait(ms) {
+    return new Promise(resolve => window.setTimeout(resolve, ms));
+  }
+
+  function whenWindowLoaded(limit) {
+    if (document.readyState === 'complete') return Promise.resolve();
+    return new Promise(resolve => {
+      let settled = false;
+      const done = () => {
+        if (settled) return;
+        settled = true;
+        window.removeEventListener('load', done);
+        resolve();
+      };
+      window.addEventListener('load', done, { once: true });
+      window.setTimeout(done, limit || 2500);
+    });
+  }
+
   function celebrateLoader() {
     document.body.classList.add('is-ready');
+    if (app.girls) app.girls.render();
+    if (app.cake) app.cake.render();
+    if (window.YanaLoader) {
+      window.YanaLoader.finish();
+      return;
+    }
     const loader = $('#loader');
     if (loader) {
       window.setTimeout(() => loader.classList.add('is-hidden'), 320);
     }
-    if (app.girls) app.girls.render();
-    if (app.cake) app.cake.render();
   }
 
-  async function boot() {
-    if (document.fonts && document.fonts.ready) {
-      await Promise.race([
-        document.fonts.ready.catch(() => {}),
-        new Promise(resolve => window.setTimeout(resolve, 1600))
-      ]);
-    }
-
-    try {
-      const confettiCanvas = $('#confetti-canvas');
-      if (confettiCanvas) app.confetti = new Confetti(confettiCanvas);
-      app.girls = setupGirlsScene();
-      app.cake = setupCakeScene();
-    } catch (error) {
-      console.error('One of the 3D scenes had trouble starting:', error);
-    }
-
-    setupNavigation();
-    setupHeroUI();
-    setupReferenceViewer();
-    setupWishUI();
-    setupCarousel();
-    setupLightbox();
-    setupPersonalNote();
-    setupSoundUI();
-    setupKissButton();
-
+  function startRenderLoop() {
     let last = performance.now();
+
     function loop(now) {
       const dt = Math.min((now - last) / 1000, 0.045);
       last = now;
@@ -2902,11 +2903,74 @@
         }
         if (carouselUpdate) carouselUpdate(dt);
       }
-      requestAnimationFrame(loop);
+      window.requestAnimationFrame(loop);
     }
 
-    requestAnimationFrame(loop);
-    celebrateLoader();
+    window.requestAnimationFrame(loop);
+  }
+
+  async function boot() {
+    const Loader = window.YanaLoader;
+
+    if (Loader) Loader.setStatus('warming up her little world');
+    // Let the loader paint before the heavier 3D work starts.
+    await new Promise(resolve => window.requestAnimationFrame(() => window.requestAnimationFrame(resolve)));
+
+    if (document.fonts && document.fonts.ready) {
+      await Promise.race([
+        document.fonts.ready.catch(() => {}),
+        wait(1200)
+      ]);
+    }
+
+    if (Loader) Loader.setStatus('lighting the candles');
+
+    try {
+      const confettiCanvas = $('#confetti-canvas');
+      if (confettiCanvas) app.confetti = new Confetti(confettiCanvas);
+
+      try {
+        app.girls = setupGirlsScene();
+      } catch (error) {
+        console.error('The birthday girl scene had trouble starting:', error);
+      }
+
+      try {
+        app.cake = setupCakeScene();
+      } catch (error) {
+        console.error('The cake scene had trouble starting:', error);
+      }
+
+      setupNavigation();
+      setupHeroUI();
+      setupReferenceViewer();
+      setupWishUI();
+      setupCarousel();
+      setupLightbox();
+      setupPersonalNote();
+      setupSoundUI();
+      setupKissButton();
+
+      const referencePhoto = $('.reference-photo img');
+      if (referencePhoto && referencePhoto.decode && !referencePhoto.complete) {
+        await Promise.race([referencePhoto.decode().catch(() => {}), wait(1200)]);
+      }
+
+      if (Loader) Loader.setStatus('one last ribbon');
+      await whenWindowLoaded(2500);
+      celebrateLoader();
+    } catch (error) {
+      console.error('The birthday page had trouble starting:', error);
+      document.body.classList.add('has-no-3d');
+      if (Loader) {
+        Loader.setStatus('showing the quiet version');
+        Loader.finish();
+      } else {
+        celebrateLoader();
+      }
+    }
+
+    startRenderLoop();
   }
 
   boot();

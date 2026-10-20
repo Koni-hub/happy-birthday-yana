@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="is-loading">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,14 +7,15 @@
   <meta name="description" content="Make a birthday wish with Yana, wander through her favorite photos, and read a letter written with love." />
   <title>Your Birthday Wish · Yana ✦</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%82%3C/text%3E%3C/svg%3E" />
-  <link rel="stylesheet" href="styles.css?v=3" />
+  <link rel="preload" href="vendor/three.global.js" as="script" />
+  <link rel="stylesheet" href="styles.css?v=4" />
 </head>
 <body class="wishes-page">
   <noscript><div class="noscript">This little birthday world needs JavaScript to come alive. Please enable it and refresh. ♥</div></noscript>
 
-  <div class="loader" id="loader" aria-hidden="true">
+  <div class="loader" id="loader" role="status" aria-live="polite">
     <div class="loader-orb"><span>Y</span></div>
-    <p class="loader-title">lighting the candles for you</p>
+    <p class="loader-title" id="loader-status">lighting the candles for you</p>
     <div class="loader-line"><i></i></div>
   </div>
 
@@ -24,7 +25,7 @@
     <a class="brand" href="index.html" aria-label="Back to the birthday girl">
       <span class="brand-mark">✦</span>
       <span>For Yana</span>
-      <span class="brand-sub">a birthday in three wishes</span>
+      <span class="brand-sub">wishes, memories &amp; love</span>
     </a>
     <nav class="main-nav" aria-label="Birthday chapters">
       <a href="index.html" data-nav="girls">01 <span>The girl</span></a>
@@ -92,82 +93,82 @@
       <div class="carousel" id="photo-carousel">
         <div class="carousel-ring" id="carousel-ring">
           <button class="polaroid" style="--i:0" type="button" data-photo="0" aria-label="Open photo: my favorite view">
-            <span class="photo-frame"><img src="assets/yana-pro.jpg" alt="Yana looking softly at the camera" loading="eager" /></span>
+            <span class="photo-frame"><img decoding="async" src="assets/yana-pro.jpg" alt="Yana looking softly at the camera" loading="lazy" /></span>
             <span class="polaroid-caption">my favorite view</span>
             <span class="photo-tape" aria-hidden="true"></span>
           </button>
           <button class="polaroid" style="--i:1" type="button" data-photo="1" aria-label="Open photo: golden hour, golden girl">
-            <span class="photo-frame"><img src="assets/yana-wife.jpg" alt="Yana in warm golden light" loading="lazy" /></span>
+            <span class="photo-frame"><img decoding="async" src="assets/yana-wife.jpg" alt="Yana in warm golden light" loading="lazy" /></span>
             <span class="polaroid-caption">golden hour, golden girl</span>
             <span class="photo-tape" aria-hidden="true"></span>
           </button>
           <button class="polaroid" style="--i:2" type="button" data-photo="2" aria-label="Open photo: the softest hello">
-            <span class="photo-frame"><img src="assets/yana-wifey.jpg" alt="Yana in a fluffy white hat" loading="lazy" /></span>
+            <span class="photo-frame"><img decoding="async" src="assets/yana-wifey.jpg" alt="Yana in a fluffy white hat" loading="lazy" /></span>
             <span class="polaroid-caption">the softest hello</span>
             <span class="photo-tape" aria-hidden="true"></span>
           </button>
           <button class="polaroid" style="--i:3" type="button" data-photo="3" aria-label="Open photo: winter wishes">
-            <span class="photo-frame"><img src="assets/yana-with-hat.jpg" alt="Yana wearing a fuzzy white hat and making a peace sign" loading="lazy" /></span>
+            <span class="photo-frame"><img decoding="async" src="assets/yana-with-hat.jpg" alt="Yana wearing a fuzzy white hat and making a peace sign" loading="lazy" /></span>
             <span class="polaroid-caption">winter wishes</span>
             <span class="photo-tape" aria-hidden="true"></span>
           </button>
           <button class="polaroid" style="--i:4" type="button" data-photo="4" aria-label="Open photo: you plus plushies equals joy">
-            <span class="photo-frame"><img src="assets/yana-with-pink-cat.jpg" alt="Yana holding a giant pink and white plush cat" loading="lazy" /></span>
+            <span class="photo-frame"><img decoding="async" src="assets/optimized/yana-with-pink-cat.jpg" alt="Yana holding a giant pink and white plush cat" loading="lazy" /></span>
             <span class="polaroid-caption">you + plushies = joy</span>
             <span class="photo-tape" aria-hidden="true"></span>
           </button>
           <button class="polaroid" style="--i:5" type="button" data-photo="5" aria-label="Open photo: three ways to make me smile">
-            <span class="photo-frame"><img src="assets/yana-3-shot-pinkish.jpg" alt="Three soft-focus portraits of Yana in a white hat" loading="lazy" /></span>
+            <span class="photo-frame"><img decoding="async" src="assets/optimized/yana-3-shot-pinkish.jpg" alt="Three soft-focus portraits of Yana in a white hat" loading="lazy" /></span>
             <span class="polaroid-caption">three ways to make me smile</span>
             <span class="photo-tape" aria-hidden="true"></span>
           </button>
           <button class="polaroid" style="--i:6" type="button" data-photo="6" aria-label="Open photo: midnight blue">
-            <span class="photo-frame"><img src="assets/yana-3-shot-blueish.jpg" alt="Three blue-toned portraits of Yana" loading="lazy" /></span>
+            <span class="photo-frame"><img decoding="async" src="assets/optimized/yana-3-shot-blueish.jpg" alt="Three blue-toned portraits of Yana" loading="lazy" /></span>
             <span class="polaroid-caption">midnight blue</span>
             <span class="photo-tape" aria-hidden="true"></span>
           </button>
           <button class="polaroid" style="--i:7" type="button" data-photo="7" aria-label="Open photo: peace, love and you">
-            <span class="photo-frame"><img src="assets/yana-glasses.png" alt="Yana in a maroon top with glasses on her head, making a peace sign" loading="lazy" /></span>
+            <span class="photo-frame"><img decoding="async" src="assets/optimized/yana-glasses.jpg" alt="Yana in a maroon top with glasses on her head, making a peace sign" loading="lazy" /></span>
             <span class="polaroid-caption">peace, love &amp; you</span>
             <span class="photo-tape" aria-hidden="true"></span>
           </button>
           <button class="polaroid" style="--i:8" type="button" data-photo="8" aria-label="Open photo: my pretty girl">
-            <span class="photo-frame"><img src="assets/yana-school.png" alt="Two portraits of Yana in a red checkered top with a heart sticker" loading="lazy" /></span>
+            <span class="photo-frame"><img decoding="async" src="assets/optimized/yana-school.jpg" alt="Two portraits of Yana in a red checkered top with a heart sticker" loading="lazy" /></span>
             <span class="polaroid-caption">my pretty girl</span>
             <span class="photo-tape" aria-hidden="true"></span>
           </button>
           <button class="polaroid" style="--i:9" type="button" data-photo="9" aria-label="Open photo: i love me, i love you">
-            <span class="photo-frame"><img src="assets/yana-love-me.png" alt="Yana taking a mirror selfie in a red top, with the caption I love me" loading="lazy" /></span>
+            <span class="photo-frame"><img decoding="async" src="assets/optimized/yana-love-me.jpg" alt="Yana taking a mirror selfie in a red top, with the caption I love me" loading="lazy" /></span>
             <span class="polaroid-caption">i love me, i love you</span>
             <span class="photo-tape" aria-hidden="true"></span>
           </button>
           <button class="polaroid" style="--i:10" type="button" data-photo="10" aria-label="Open photo: soft light, softer you">
-            <span class="photo-frame"><img src="assets/yana-cutie.png" alt="Two soft portraits of Yana in a fuzzy bucket hat" loading="lazy" /></span>
+            <span class="photo-frame"><img decoding="async" src="assets/optimized/yana-cutie.jpg" alt="Two soft portraits of Yana in a fuzzy bucket hat" loading="lazy" /></span>
             <span class="polaroid-caption">soft light, softer you</span>
             <span class="photo-tape" aria-hidden="true"></span>
           </button>
           <button class="polaroid" style="--i:11" type="button" data-photo="11" aria-label="Open photo: my favorite silly face">
-            <span class="photo-frame"><img src="assets/yana-cute.png" alt="Four close-up portraits of Yana making a playful face" loading="lazy" /></span>
+            <span class="photo-frame"><img decoding="async" src="assets/optimized/yana-cute.jpg" alt="Four close-up portraits of Yana making a playful face" loading="lazy" /></span>
             <span class="polaroid-caption">my favorite silly face</span>
             <span class="photo-tape" aria-hidden="true"></span>
           </button>
           <button class="polaroid" style="--i:12" type="button" data-photo="12" aria-label="Open photo: the hat stays on">
-            <span class="photo-frame"><img src="assets/yana-cute-hat.png" alt="Four close-up portraits of Yana in a fuzzy bucket hat" loading="lazy" /></span>
+            <span class="photo-frame"><img decoding="async" src="assets/optimized/yana-cute-hat.jpg" alt="Four close-up portraits of Yana in a fuzzy bucket hat" loading="lazy" /></span>
             <span class="polaroid-caption">the hat stays on</span>
             <span class="photo-tape" aria-hidden="true"></span>
           </button>
           <button class="polaroid" style="--i:13" type="button" data-photo="13" aria-label="Open photo: four ways to fall for you">
-            <span class="photo-frame"><img src="assets/yana-four-pics.png" alt="Four soft portraits of Yana in a fuzzy hat" loading="lazy" /></span>
+            <span class="photo-frame"><img decoding="async" src="assets/optimized/yana-four-pics.jpg" alt="Four soft portraits of Yana in a fuzzy hat" loading="lazy" /></span>
             <span class="polaroid-caption">four ways to fall for you</span>
             <span class="photo-tape" aria-hidden="true"></span>
           </button>
           <button class="polaroid" style="--i:14" type="button" data-photo="14" aria-label="Open photo: midnight you">
-            <span class="photo-frame"><img src="assets/yana-love.png" alt="Two moody low-light portraits of Yana in a fuzzy bucket hat" loading="lazy" /></span>
+            <span class="photo-frame"><img decoding="async" src="assets/optimized/yana-love.jpg" alt="Two moody low-light portraits of Yana in a fuzzy bucket hat" loading="lazy" /></span>
             <span class="polaroid-caption">midnight you</span>
             <span class="photo-tape" aria-hidden="true"></span>
           </button>
           <button class="polaroid" style="--i:15" type="button" data-photo="15" aria-label="Open photo: a whole grid of you">
-            <span class="photo-frame"><img src="assets/yana-six-photo.png" alt="A collage of many portraits of Yana in a black top" loading="lazy" /></span>
+            <span class="photo-frame"><img decoding="async" src="assets/optimized/yana-six-photo.jpg" alt="A collage of many portraits of Yana in a black top" loading="lazy" /></span>
             <span class="polaroid-caption">a whole grid of you</span>
             <span class="photo-tape" aria-hidden="true"></span>
           </button>
@@ -204,7 +205,7 @@
         <article class="letter-card">
           <div class="letter-portrait">
             <div class="portrait-ring">
-              <img src="assets/yana-pro.jpg" alt="A portrait of Yana" loading="lazy" />
+              <img src="assets/yana-pro.jpg" alt="A portrait of Yana" loading="lazy" decoding="async" />
             </div>
             <span>the birthday girl</span>
           </div>
@@ -269,13 +270,41 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script>
-    // Friendly safety net: never leave the page hidden behind the loader.
-    setTimeout(function () {
+    (function () {
       var loader = document.getElementById('loader');
-      if (loader) loader.classList.add('is-hidden');
-    }, 6500);
+      var status = document.getElementById('loader-status');
+      var started = performance.now();
+      var finished = false;
+      var reassure = window.setTimeout(function () {
+        if (!finished && status) status.textContent = 'still lighting the candles — almost there';
+      }, 12000);
+      var hardStop = window.setTimeout(function () {
+        if (!finished && window.YanaLoader) window.YanaLoader.finish();
+      }, 25000);
+
+      function setStatus(text) {
+        if (status && text) status.textContent = text;
+      }
+
+      function finish() {
+        if (finished) return;
+        finished = true;
+        window.clearTimeout(reassure);
+        window.clearTimeout(hardStop);
+        document.body.classList.add('is-ready');
+        document.documentElement.classList.remove('is-loading');
+        var remaining = Math.max(0, 700 - (performance.now() - started));
+        window.setTimeout(function () {
+          if (!loader) return;
+          loader.classList.add('is-hidden');
+          loader.setAttribute('aria-hidden', 'true');
+        }, remaining);
+      }
+
+      window.YanaLoader = { setStatus: setStatus, finish: finish };
+    })();
   </script>
   <script src="vendor/three.global.js"></script>
-  <script src="main.js"></script>
+  <script src="main.js?v=4"></script>
 </body>
 </html>

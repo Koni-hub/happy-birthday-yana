@@ -1,5 +1,5 @@
 /* ————————————————————————————————————————————————
-   For Yana · a birthday in three wishes
+   For Yana · wishes, memories & love
    Hand-built type, 3D stages, and a little bit of magic.
    ———————————————————————————————————————————————— */
 
@@ -137,6 +137,9 @@ body {
 
 body.is-locked { overflow: hidden; }
 
+html.is-loading,
+html.is-loading body { overflow: hidden; }
+
 ::selection { background: var(--rose-deep); color: #fff8f2; }
 
 img { max-width: 100%; display: block; }
@@ -206,6 +209,8 @@ a { color: inherit; }
 }
 .loader-title {
   margin: 0;
+  max-width: min(80vw, 340px);
+  text-align: center;
   font-size: 9px;
   letter-spacing: 0.27em;
   text-transform: uppercase;

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="is-loading">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,14 +7,15 @@
   <meta name="description" content="A little three-dimensional birthday surprise for Yana. Tap anywhere to begin." />
   <title>Happy Birthday, Yana ✦</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%82%3C/text%3E%3C/svg%3E" />
-  <link rel="stylesheet" href="styles.css?v=3" />
+  <link rel="preload" href="vendor/three.global.js" as="script" />
+  <link rel="stylesheet" href="styles.css?v=4" />
 </head>
 <body class="landing-page">
   <noscript><div class="noscript">This little birthday world needs JavaScript to come alive. Please enable it and refresh. ♥</div></noscript>
 
-  <div class="loader" id="loader" aria-hidden="true">
+  <div class="loader" id="loader" role="status" aria-live="polite">
     <div class="loader-orb"><span>Y</span></div>
-    <p class="loader-title">setting the table for something special</p>
+    <p class="loader-title" id="loader-status">setting the table for something special</p>
     <div class="loader-line"><i></i></div>
   </div>
 
@@ -87,13 +88,41 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script>
-    // Friendly safety net: never leave the page hidden behind the loader.
-    setTimeout(function () {
+    (function () {
       var loader = document.getElementById('loader');
-      if (loader) loader.classList.add('is-hidden');
-    }, 6500);
+      var status = document.getElementById('loader-status');
+      var started = performance.now();
+      var finished = false;
+      var reassure = window.setTimeout(function () {
+        if (!finished && status) status.textContent = 'still setting the table — almost there';
+      }, 12000);
+      var hardStop = window.setTimeout(function () {
+        if (!finished && window.YanaLoader) window.YanaLoader.finish();
+      }, 25000);
+
+      function setStatus(text) {
+        if (status && text) status.textContent = text;
+      }
+
+      function finish() {
+        if (finished) return;
+        finished = true;
+        window.clearTimeout(reassure);
+        window.clearTimeout(hardStop);
+        document.body.classList.add('is-ready');
+        document.documentElement.classList.remove('is-loading');
+        var remaining = Math.max(0, 700 - (performance.now() - started));
+        window.setTimeout(function () {
+          if (!loader) return;
+          loader.classList.add('is-hidden');
+          loader.setAttribute('aria-hidden', 'true');
+        }, remaining);
+      }
+
+      window.YanaLoader = { setStatus: setStatus, finish: finish };
+    })();
   </script>
   <script src="vendor/three.global.js"></script>
-  <script src="main.js"></script>
+  <script src="main.js?v=4"></script>
 </body>
 </html>
