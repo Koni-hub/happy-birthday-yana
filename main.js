@@ -965,13 +965,13 @@
       sheenRoughness: 0.8
     });
     const dress = physical(config.dress, {
-      roughness: 0.32,
-      metalness: 0.16,
-      clearcoat: 0.88,
-      clearcoatRoughness: 0.24,
-      sheen: 0.4,
-      sheenColor: new THREE.Color(0xffcbd8),
-      sheenRoughness: 0.65
+      roughness: 0.4,
+      metalness: 0.12,
+      clearcoat: 0.62,
+      clearcoatRoughness: 0.28,
+      sheen: 0.28,
+      sheenColor: new THREE.Color(config.dressSheen || 0xffcbd8),
+      sheenRoughness: 0.7
     });
     const hair = physical(config.hair, {
       roughness: 0.4,
@@ -1037,32 +1037,43 @@
     }
 
     /* skirt and bodice */
-    const skirt = new THREE.Mesh(new THREE.CylinderGeometry(0.335, 0.7, 1.34, 64, 1, false), dress);
+    const fitted = config.silhouette === 'fitted';
+    const skirt = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.335, fitted ? 0.52 : 0.7, 1.34, 64, 1, false),
+      dress
+    );
     skirt.position.y = 1.35;
     figure.add(skirt);
 
-    const tulle = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.39, 0.73, 1.18, 48, 1, true),
-      new THREE.MeshPhysicalMaterial({
-        color: config.tulle || 0xffdfe2,
-        transparent: true,
-        opacity: 0.1,
-        roughness: 0.25,
-        metalness: 0.1,
-        side: THREE.DoubleSide,
-        depthWrite: false,
-        clearcoat: 1
-      })
+    if (config.tulle !== false) {
+      const tulle = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.39, 0.73, 1.18, 48, 1, true),
+        new THREE.MeshPhysicalMaterial({
+          color: config.tulle || 0xffdfe2,
+          transparent: true,
+          opacity: 0.1,
+          roughness: 0.25,
+          metalness: 0.1,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+          clearcoat: 1
+        })
+      );
+      tulle.position.y = 1.37;
+      figure.add(tulle);
+    }
+
+    if (config.trim !== false) {
+      const hem = new THREE.Mesh(new THREE.TorusGeometry(0.7, 0.009, 6, 64), gold);
+      hem.rotation.x = Math.PI / 2;
+      hem.position.y = 0.69;
+      figure.add(hem);
+    }
+
+    const waist = new THREE.Mesh(
+      new THREE.TorusGeometry(0.335, config.trim === false ? 0.012 : 0.018, 8, 48),
+      config.trim === false ? dress : gold
     );
-    tulle.position.y = 1.37;
-    figure.add(tulle);
-
-    const hem = new THREE.Mesh(new THREE.TorusGeometry(0.7, 0.009, 6, 64), gold);
-    hem.rotation.x = Math.PI / 2;
-    hem.position.y = 0.69;
-    figure.add(hem);
-
-    const waist = new THREE.Mesh(new THREE.TorusGeometry(0.335, 0.018, 8, 48), gold);
     waist.rotation.x = Math.PI / 2;
     waist.position.y = 2.02;
     figure.add(waist);
@@ -1078,19 +1089,48 @@
       figure.add(bust);
     }
 
-    const neckline = new THREE.Mesh(
-      new THREE.TorusGeometry(0.155, 0.006, 6, 40, Math.PI * 1.15),
-      pearl
-    );
-    neckline.rotation.set(Math.PI / 2, 0, -Math.PI * 0.075);
-    neckline.position.set(0, 2.713, 0.055);
-    figure.add(neckline);
+    if (config.vNeck) {
+      const chest = new THREE.Mesh(new THREE.SphereGeometry(0.155, 28, 22), skin);
+      chest.scale.set(0.96, 1.3, 0.52);
+      chest.position.set(0, 2.58, 0.245);
+      figure.add(chest);
+
+      for (const side of [-1, 1]) {
+        const lapel = tube([
+          [side * 0.17, 2.7, 0.22],
+          [side * 0.09, 2.52, 0.315],
+          [side * 0.018, 2.35, 0.345]
+        ], 0.033, dress, 18);
+        figure.add(lapel);
+      }
+    }
+
+    if (config.necklace !== false) {
+      if (config.vNeck && config.necklace === 'gold') {
+        for (const side of [-1, 1]) {
+          const chain = tube([
+            [side * 0.118, 2.72, 0.31],
+            [side * 0.058, 2.58, 0.332],
+            [0, 2.47, 0.338]
+          ], 0.006, gold, 14);
+          figure.add(chain);
+        }
+      } else {
+        const neckline = new THREE.Mesh(
+          new THREE.TorusGeometry(0.155, 0.006, 6, 40, Math.PI * 1.15),
+          config.necklace === 'gold' ? gold : pearl
+        );
+        neckline.rotation.set(Math.PI / 2, 0, -Math.PI * 0.075);
+        neckline.position.set(0, 2.713, 0.055);
+        figure.add(neckline);
+      }
+    }
 
     /* sleeves, arms and hands */
     for (const side of [-1, 1]) {
       const sleeve = new THREE.Mesh(new THREE.SphereGeometry(0.15, 20, 16), dress);
-      sleeve.scale.set(0.94, 0.82, 0.9);
-      sleeve.position.set(side * 0.35, 2.66, 0);
+      sleeve.scale.set(0.9, 0.74, 0.86);
+      sleeve.position.set(side * 0.35, 2.645, 0.005);
       figure.add(sleeve);
 
       const upperArm = capsuleBetween(
@@ -1114,10 +1154,12 @@
       hand.position.set(side * 0.225, 2.075, 0.54);
       figure.add(hand);
 
-      const bracelet = new THREE.Mesh(new THREE.TorusGeometry(0.056, 0.007, 6, 24), gold);
-      bracelet.rotation.x = 1.2;
-      bracelet.position.set(side * 0.31, 2.14, 0.44);
-      figure.add(bracelet);
+      if (config.bracelets !== false) {
+        const bracelet = new THREE.Mesh(new THREE.TorusGeometry(0.056, 0.007, 6, 24), gold);
+        bracelet.rotation.x = 1.2;
+        bracelet.position.set(side * 0.31, 2.14, 0.44);
+        figure.add(bracelet);
+      }
     }
 
     /* neck */
@@ -1151,18 +1193,26 @@
 
     if (config.hairStyle === 'long') {
       const longHair = new THREE.Mesh(new THREE.SphereGeometry(0.42, 36, 28), hair);
-      longHair.scale.set(1.03, 1.68, 0.58);
-      longHair.position.set(0, -0.34, -0.13);
+      longHair.scale.set(1.02, 1.44, 0.6);
+      longHair.position.set(0, -0.22, -0.13);
       headGroup.add(longHair);
       for (const side of [-1, 1]) {
         const lock = tube([
           [side * 0.36, 0.25, -0.02],
           [side * 0.49, -0.02, -0.01],
-          [side * 0.47, -0.38, 0.02],
-          [side * 0.34, -0.72, 0.06],
-          [side * 0.24, -0.95, 0.06]
+          [side * 0.5, -0.3, 0.02],
+          [side * 0.42, -0.58, 0.05],
+          [side * 0.31, -0.8, 0.05]
         ], side === 1 ? 0.086 : 0.095, hair, 45);
         headGroup.add(lock);
+
+        const wisp = tube([
+          [side * 0.46, -0.08, 0.04],
+          [side * 0.53, -0.34, 0.06],
+          [side * 0.41, -0.61, 0.08],
+          [side * 0.32, -0.8, 0.07]
+        ], 0.022, hairLight, 20);
+        headGroup.add(wisp);
       }
     } else {
       for (const side of [-1, 1]) {
@@ -1182,15 +1232,15 @@
       }
     }
 
-    /* fringe */
+    /* centre-parted curtain fringe */
     const fringePaths = [
-      [[0.02, 0.37, 0.31], [-0.12, 0.31, 0.4], [-0.31, 0.17, 0.34]],
-      [[0.03, 0.37, 0.32], [0.12, 0.28, 0.4], [0.29, 0.15, 0.34]],
-      [[-0.03, 0.39, 0.28], [-0.23, 0.33, 0.35], [-0.38, 0.14, 0.3]],
-      [[0.05, 0.38, 0.3], [0.24, 0.32, 0.36], [0.37, 0.18, 0.29]]
+      [[0.015, 0.39, 0.29], [-0.08, 0.34, 0.39], [-0.22, 0.24, 0.39], [-0.36, 0.08, 0.31]],
+      [[-0.015, 0.39, 0.29], [0.08, 0.34, 0.39], [0.22, 0.24, 0.39], [0.36, 0.08, 0.31]],
+      [[0.0, 0.41, 0.27], [-0.04, 0.38, 0.36], [-0.12, 0.31, 0.4], [-0.2, 0.21, 0.37]],
+      [[0.0, 0.41, 0.27], [0.04, 0.38, 0.36], [0.12, 0.31, 0.4], [0.2, 0.21, 0.37]]
     ];
     fringePaths.forEach((path, i) => {
-      const strand = tube(path, i < 2 ? 0.052 : 0.041, hair, 24);
+      const strand = tube(path, i < 2 ? 0.05 : 0.038, hair, 26);
       headGroup.add(strand);
     });
     const crownHighlight = tube([
@@ -1202,7 +1252,7 @@
 
     /* face */
     const eyeWhiteMat = standard(0xfff9f3, { roughness: 0.24 });
-    const irisMat = physical(0x4a2e27, { roughness: 0.18, clearcoat: 1, clearcoatRoughness: 0.08 });
+    const irisMat = physical(config.eyeColor || 0x4a2e27, { roughness: 0.18, clearcoat: 1, clearcoatRoughness: 0.08 });
     const pupilMat = standard(0x161011, { roughness: 0.2 });
     const highlightMat = new THREE.MeshBasicMaterial({ color: 0xfffdf8, toneMapped: false });
     const lashMat = standard(0x281819, { roughness: 0.7 });
@@ -1332,28 +1382,38 @@
 
     /* hats and hair accessories */
     if (config.hat === 'snow') {
-      const fur = physical(0xf4eee4, { roughness: 0.96, clearcoat: 0.02, sheen: 0.5, sheenColor: new THREE.Color(0xffffff) });
-      const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.49, 0.27, 40), fur);
-      crown.position.y = 0.44;
+      const fur = physical(config.hatColor || 0xf5efe4, { roughness: 0.96, clearcoat: 0.02, sheen: 0.5, sheenColor: new THREE.Color(0xffffff) });
+      const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.52, 0.26, 40), fur);
+      crown.position.y = 0.43;
       headGroup.add(crown);
-      const crownTop = new THREE.Mesh(new THREE.SphereGeometry(0.48, 32, 18), fur);
-      crownTop.scale.set(1, 0.54, 1);
-      crownTop.position.y = 0.565;
+      const crownTop = new THREE.Mesh(new THREE.SphereGeometry(0.51, 32, 18), fur);
+      crownTop.scale.set(1, 0.5, 1);
+      crownTop.position.y = 0.56;
       headGroup.add(crownTop);
-      const brim = new THREE.Mesh(new THREE.TorusGeometry(0.505, 0.075, 12, 48), fur);
+      const brim = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.09, 12, 48), fur);
       brim.rotation.x = Math.PI / 2;
-      brim.position.y = 0.315;
+      brim.position.y = 0.29;
       headGroup.add(brim);
-      for (let i = 0; i < 18; i++) {
-        const angle = (i / 18) * Math.PI * 2;
-        const fluff = new THREE.Mesh(new THREE.SphereGeometry(rand(0.055, 0.085), 12, 10), fur);
-        fluff.position.set(Math.cos(angle) * 0.5, 0.31 + rand(-0.035, 0.035), Math.sin(angle) * 0.5);
+      for (let i = 0; i < 26; i++) {
+        const angle = (i / 26) * Math.PI * 2;
+        const fluff = new THREE.Mesh(new THREE.SphereGeometry(rand(0.055, 0.098), 12, 10), fur);
+        fluff.position.set(Math.cos(angle) * 0.55, 0.29 + rand(-0.04, 0.04), Math.sin(angle) * 0.55);
         headGroup.add(fluff);
       }
-      for (let i = 0; i < 9; i++) {
-        const angle = (i / 9) * Math.PI * 2;
-        const fluff = new THREE.Mesh(new THREE.SphereGeometry(rand(0.05, 0.075), 12, 10), fur);
-        fluff.position.set(Math.cos(angle) * 0.34, 0.59 + rand(-0.02, 0.03), Math.sin(angle) * 0.34);
+      for (let i = 0; i < 18; i++) {
+        const angle = (i / 18) * Math.PI * 2;
+        const fluff = new THREE.Mesh(new THREE.SphereGeometry(rand(0.05, 0.085), 12, 10), fur);
+        fluff.position.set(
+          Math.cos(angle) * rand(0.46, 0.51),
+          0.44 + rand(-0.06, 0.11),
+          Math.sin(angle) * rand(0.46, 0.51)
+        );
+        headGroup.add(fluff);
+      }
+      for (let i = 0; i < 8; i++) {
+        const angle = (i / 8) * Math.PI * 2;
+        const fluff = new THREE.Mesh(new THREE.SphereGeometry(rand(0.045, 0.065), 12, 10), fur);
+        fluff.position.set(Math.cos(angle) * 0.24, 0.78 + rand(-0.01, 0.02), Math.sin(angle) * 0.24);
         headGroup.add(fluff);
       }
     } else if (config.hat === 'cat') {
@@ -1455,9 +1515,11 @@
   }
 
   /* ————————————————————————————————
-     Scene one · three birthday girls
+     Scene one · the birthday girl
      ———————————————————————————————— */
   const girlConfigs = [
+    /* Styled after the reference photo: fluffy cream hat, dark hair, black deep-V top.
+       The little cake she holds is intentionally left untouched. */
     {
       name: 'Yana',
       subtitle: 'the birthday girl',
@@ -1465,19 +1527,27 @@
       message: 'For the girl who makes an ordinary evening feel like the best part of my life. Every candle is a wish for you.',
       x: 0,
       z: 0.06,
-      skin: 0xf3c8b2,
-      skinShade: 0xe8b59f,
-      dress: 0xd77f97,
-      tulle: 0xffd9e4,
-      hair: 0x35211d,
-      hairLight: 0x6c4a3d,
+      skin: 0xf2c6b3,
+      skinShade: 0xe4ae9a,
+      dress: 0x1b1620,
+      dressSheen: 0x9b8f9b,
+      tulle: false,
+      trim: false,
+      silhouette: 'fitted',
+      hair: 0x241817,
+      hairLight: 0x4d332d,
       hairStyle: 'long',
       hat: 'snow',
-      earrings: 'pearl',
+      hatColor: 0xf7f1e6,
+      earrings: null,
       longEarrings: false,
-      lip: 0xb85f6e,
+      lip: 0xc27780,
+      eyeColor: 0x3b2922,
+      necklace: 'gold',
+      bracelets: false,
+      vNeck: true,
       beautyMark: false,
-      smile: true,
+      smile: false,
       phase: 2.1,
       cake: { cake: 0xf4b6c5, frosting: 0xffe3eb, candle: 0xef9caf }
     }
