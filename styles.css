@@ -638,8 +638,8 @@ body.is-ready .letter .reveal { animation-delay: 0.1s; }
 }
 .title-name > span {
   display: inline-block;
-  margin-left: 0.14em;
-  padding-left: 0.16em;
+  margin-left: 0.06em;
+  padding-left: 0.32em;
   overflow: visible;
   font-family: var(--script);
   font-size: clamp(5.1rem, 8vw, 9.6rem);
@@ -648,10 +648,15 @@ body.is-ready .letter .reveal { animation-delay: 0.1s; }
   line-height: 1.2;
   letter-spacing: -0.03em;
   color: var(--rose-bright);
-  transform: rotate(-4deg) translateY(24px);
+  /* No transform here: transformed inline text can have its ink clipped. */
+  transform: none;
   text-shadow: 0 0 55px rgba(239, 156, 175, 0.24);
 }
-body.is-ready .title-name > span { animation-name: name-in; }
+body.is-ready .hero .title-name > span {
+  opacity: 1;
+  transform: none;
+  animation: none;
+}
 @keyframes name-in {
   from { opacity: 0; transform: rotate(-4deg) translateY(34px) scale(0.96); }
   to { opacity: 1; transform: rotate(-4deg) translateY(0) scale(1); }
@@ -2118,6 +2123,5 @@ body.is-leaving .site-header { opacity: 0; transition: opacity 0.35s ease; }
     transition-duration: 0.01ms !important;
   }
   .reveal, .title-line > span, .title-line > em { opacity: 1; transform: none; }
-  .title-name > span { transform: rotate(-4deg); }
   .loader { display: none; }
 }
