@@ -624,7 +624,6 @@ body.is-ready .letter .reveal { animation-delay: 0.1s; }
 }
 .title-line { display: block; overflow: visible; padding-bottom: 0.04em; }
 .title-line:nth-child(2) > em {
-  display: inline-block;
   font-weight: 300;
   background: linear-gradient(100deg, #fff0df 0%, #f7c9cf 43%, #eda7b9 100%);
   -webkit-background-clip: text;
