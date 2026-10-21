@@ -1731,8 +1731,6 @@ body.is-ready .hero .title-name > span {
   content: '';
   position: absolute;
   inset: 12px;
-  border: 1px solid rgba(140, 88, 121, 0.16);
-  border-radius: 16px;
   pointer-events: none;
 }
 .note-close {
