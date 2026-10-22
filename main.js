@@ -24,8 +24,9 @@
     const memory = navigator.deviceMemory || 8;
     return coarse || cores <= 4 || memory <= 4;
   })();
-  const maxPixelRatio = lowPower ? 1 : 1.5;
+  const maxPixelRatio = lowPower ? 0.9 : 1.25;
   const shadowMapSize = lowPower ? 512 : 1024;
+  let reducedEffects = lowPower;
   if (lowPower) document.documentElement.classList.add('is-low-power');
 
   if (!THREE) {
@@ -164,7 +165,7 @@
       dry.connect(master);
 
       const reverb = ctx.createConvolver();
-      reverb.buffer = makeImpulse(3, 2.4);
+      reverb.buffer = makeImpulse(lowPower ? 1.4 : 3, 2.4);
       const wet = ctx.createGain();
       wet.gain.value = 0.9;
       bus.connect(reverb);
@@ -741,14 +742,14 @@
     }
 
     resize() {
-      const ratio = Math.min(window.devicePixelRatio || 1, lowPower ? 1 : 2);
+      const ratio = Math.min(window.devicePixelRatio || 1, reducedEffects ? 1 : 2);
       this.canvas.width = window.innerWidth * ratio;
       this.canvas.height = window.innerHeight * ratio;
       this.ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
     }
 
     burst(amount, fromCenter) {
-      const count = Math.round((amount || 140) * (lowPower ? 0.6 : 1));
+      const count = Math.round((amount || 140) * (reducedEffects ? 0.55 : 1));
       const w = window.innerWidth;
       const h = window.innerHeight;
       for (let i = 0; i < count; i++) {
@@ -870,13 +871,27 @@
   const SHADOW_TEXTURE = shadowTexture();
 
   function physical(color, options) {
-    return new THREE.MeshPhysicalMaterial(Object.assign({
+    // Standard PBR keeps the soft studio look but avoids the heavier clearcoat
+    // and sheen shaders. That is a large win on mobile GPUs and older laptops.
+    const clean = {};
+    Object.keys(options || {}).forEach(key => {
+      if (
+        key !== 'clearcoat' &&
+        key !== 'clearcoatRoughness' &&
+        key !== 'sheen' &&
+        key !== 'sheenColor' &&
+        key !== 'sheenRoughness' &&
+        key !== 'specularIntensity' &&
+        key !== 'specularColor'
+      ) {
+        clean[key] = options[key];
+      }
+    });
+    return new THREE.MeshStandardMaterial(Object.assign({
       color: color,
       roughness: 0.5,
-      metalness: 0.0,
-      clearcoat: 0.18,
-      clearcoatRoughness: 0.4
-    }, options || {}));
+      metalness: 0.0
+    }, clean));
   }
 
   function standard(color, options) {
@@ -965,14 +980,15 @@
     const renderer = new THREE.WebGLRenderer({
       canvas: canvas,
       alpha: true,
-      antialias: true,
+      antialias: !lowPower,
+      precision: lowPower ? 'mediump' : 'highp',
       powerPreference: 'high-performance'
     });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, maxPixelRatio));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.08;
-    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.enabled = !lowPower;
     renderer.shadowMap.type = lowPower ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
     return renderer;
   }
@@ -1413,9 +1429,8 @@
 
     if (config.tulle !== false) {
       const tulle = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.39, 0.73, 1.18, 48, 1, true),
-        new THREE.MeshPhysicalMaterial({
-          color: config.tulle || 0xffdfe2,
+        new THREE.CylinderGeometry(0.39, 0.73, 1.18, lowPower ? 28 : 48, 1, true),
+        physical(config.tulle || 0xffdfe2, {
           transparent: true,
           opacity: 0.1,
           roughness: 0.25,
@@ -1760,15 +1775,17 @@
       brim.rotation.x = Math.PI / 2;
       brim.position.y = 0.29;
       headGroup.add(brim);
-      for (let i = 0; i < 26; i++) {
-        const angle = (i / 26) * Math.PI * 2;
-        const fluff = new THREE.Mesh(new THREE.SphereGeometry(rand(0.055, 0.098), 12, 10), fur);
+      const fluffSegments = lowPower ? [8, 6] : [12, 10];
+      const fluffCounts = lowPower ? [12, 8, 4] : [26, 18, 8];
+      for (let i = 0; i < fluffCounts[0]; i++) {
+        const angle = (i / fluffCounts[0]) * Math.PI * 2;
+        const fluff = new THREE.Mesh(new THREE.SphereGeometry(rand(0.055, 0.098), fluffSegments[0], fluffSegments[1]), fur);
         fluff.position.set(Math.cos(angle) * 0.55, 0.29 + rand(-0.04, 0.04), Math.sin(angle) * 0.55);
         headGroup.add(fluff);
       }
-      for (let i = 0; i < 18; i++) {
-        const angle = (i / 18) * Math.PI * 2;
-        const fluff = new THREE.Mesh(new THREE.SphereGeometry(rand(0.05, 0.085), 12, 10), fur);
+      for (let i = 0; i < fluffCounts[1]; i++) {
+        const angle = (i / fluffCounts[1]) * Math.PI * 2;
+        const fluff = new THREE.Mesh(new THREE.SphereGeometry(rand(0.05, 0.085), fluffSegments[0], fluffSegments[1]), fur);
         fluff.position.set(
           Math.cos(angle) * rand(0.46, 0.51),
           0.44 + rand(-0.06, 0.11),
@@ -1776,9 +1793,9 @@
         );
         headGroup.add(fluff);
       }
-      for (let i = 0; i < 8; i++) {
-        const angle = (i / 8) * Math.PI * 2;
-        const fluff = new THREE.Mesh(new THREE.SphereGeometry(rand(0.045, 0.065), 12, 10), fur);
+      for (let i = 0; i < fluffCounts[2]; i++) {
+        const angle = (i / fluffCounts[2]) * Math.PI * 2;
+        const fluff = new THREE.Mesh(new THREE.SphereGeometry(rand(0.045, 0.065), fluffSegments[0], fluffSegments[1]), fur);
         fluff.position.set(Math.cos(angle) * 0.24, 0.78 + rand(-0.01, 0.02), Math.sin(angle) * 0.24);
         headGroup.add(fluff);
       }
@@ -1937,7 +1954,7 @@
 
     const key = new THREE.DirectionalLight(0xffe3cd, 3.2);
     key.position.set(3.5, 6.5, 5.5);
-    key.castShadow = true;
+    key.castShadow = !lowPower;
     key.shadow.mapSize.set(shadowMapSize, shadowMapSize);
     key.shadow.camera.left = -5;
     key.shadow.camera.right = 5;
@@ -1955,7 +1972,7 @@
 
     const cool = new THREE.DirectionalLight(0x8eb4ff, 1.15);
     cool.position.set(4.5, 3.2, -3);
-    scene.add(cool);
+    if (!lowPower) scene.add(cool);
 
     const warmFill = new THREE.PointLight(0xffc39f, 18, 9, 2);
     warmFill.position.set(0.5, 2.5, 3.8);
@@ -2017,7 +2034,7 @@
     arch2.position.set(0, 2.4, -1.92);
     scene.add(arch2);
 
-    const stars = addStarField(scene, 320, 5.5, 9, [-6, 1.4]);
+    const stars = addStarField(scene, lowPower ? 170 : 320, 5.5, 9, [-6, 1.4]);
     stars.material.opacity = 0.62;
 
     const balloons = [
@@ -2327,7 +2344,7 @@
 
     const key = new THREE.DirectionalLight(0xffe0c4, 3.4);
     key.position.set(3.8, 6.5, 4.5);
-    key.castShadow = true;
+    key.castShadow = !lowPower;
     key.shadow.mapSize.set(shadowMapSize, shadowMapSize);
     key.shadow.camera.left = -4;
     key.shadow.camera.right = 4;
@@ -2345,7 +2362,7 @@
 
     const blue = new THREE.DirectionalLight(0x86abff, 1.25);
     blue.position.set(4, 2.4, -3);
-    scene.add(blue);
+    if (!lowPower) scene.add(blue);
 
     const fill = new THREE.PointLight(0xffb58d, 16, 8, 2);
     fill.position.set(0.4, 2.3, 4.2);
@@ -2379,7 +2396,7 @@
 
     addShadowPlane(scene, 0, 0.12, 3.2, 0.52).position.y = 0.008;
 
-    const stars = addStarField(scene, 210, 6.5, 8, [-6, 0]);
+    const stars = addStarField(scene, lowPower ? 110 : 210, 6.5, 8, [-6, 0]);
     stars.material.opacity = 0.5;
     stars.position.y = -0.1;
 
@@ -3143,8 +3160,10 @@
 
     carouselUpdate = (dt) => {
       if (!visible) return;
-      if (!dragging && !hovered && !reduceMotion) targetAngle += dt * 2.4;
-      angle = damp(angle, targetAngle, 4.2, dt);
+      if (!dragging && !hovered && !reduceMotion && !reducedEffects) targetAngle += dt * 2.4;
+      const nextAngle = damp(angle, targetAngle, 4.2, dt);
+      if (Math.abs(nextAngle - angle) < 0.0005) return;
+      angle = nextAngle;
       ring.style.transform = 'translateZ(-38px) rotateX(-2deg) rotateY(' + angle.toFixed(3) + 'deg)';
     };
 
@@ -3392,22 +3411,65 @@
 
   function startRenderLoop() {
     let last = performance.now();
+    let frameCap = 0;
+    let lite = false;
+    let monitorAt = last + 1500;
+    let sampleFrames = 0;
+    let sampleTotal = 0;
+
+    function enableLite() {
+      if (lite) return;
+      lite = true;
+      reducedEffects = true;
+      frameCap = 1000 / 30;
+      document.documentElement.classList.add('is-low-power');
+      [app.girls, app.cake].forEach(scene => {
+        if (!scene || !scene.renderer) return;
+        scene.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 0.75));
+        scene.renderer.shadowMap.enabled = false;
+      });
+      if (app.confetti) app.confetti.resize();
+    }
 
     function loop(now) {
-      const dt = Math.min((now - last) / 1000, 0.045);
+      if (frameCap && now - last < frameCap - 2) {
+        window.requestAnimationFrame(loop);
+        return;
+      }
+
+      const raw = now - last;
+      const dt = Math.min(raw / 1000, 0.05);
       last = now;
       const time = now / 1000;
 
       if (!document.hidden) {
+        let active = false;
         if (app.girls && app.girls.isVisible()) {
+          active = true;
           app.girls.update(time, dt);
           app.girls.render();
         }
         if (app.cake && app.cake.isVisible()) {
+          active = true;
           app.cake.update(time, dt);
           app.cake.render();
         }
         if (carouselUpdate) carouselUpdate(dt);
+
+        if (!lite && now > monitorAt && active) {
+          if (raw > 0 && raw < 100) {
+            sampleFrames++;
+            sampleTotal += raw;
+          }
+          if (sampleFrames >= 50) {
+            if (sampleTotal / sampleFrames > 24) enableLite();
+            sampleFrames = 0;
+            sampleTotal = 0;
+          }
+        } else if (!active) {
+          sampleFrames = 0;
+          sampleTotal = 0;
+        }
       }
       window.requestAnimationFrame(loop);
     }

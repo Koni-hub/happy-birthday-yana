@@ -2118,7 +2118,17 @@ html.is-low-power * {
   backdrop-filter: none !important;
 }
 html.is-low-power body.is-leaving .hero { filter: none; }
-html.is-low-power .letter-heart { filter: none; }
+html.is-low-power .letter-heart { filter: none; animation: none; }
+html.is-low-power .wish-glow,
+html.is-low-power .memories-aura { filter: none; }
+html.is-low-power .reference-viewer::before { display: none; }
+html.is-low-power .grain,
+html.is-low-power .memories::before { display: none; }
+html.is-low-power .carousel-ring { will-change: auto; }
+html.is-low-power .polaroid {
+  box-shadow: 0 10px 24px rgba(79, 38, 48, 0.14), 0 2px 6px rgba(79, 38, 48, 0.1);
+  transition: none;
+}
 html.is-low-power .loader-orb {
   animation: none;
   box-shadow: 0 0 38px rgba(239, 156, 175, 0.14), inset 0 0 24px rgba(228, 192, 138, 0.05);
