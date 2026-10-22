@@ -47,12 +47,12 @@
       swipe: 'assets/sfx/ui-swipe.mp3'
     };
     const SAMPLE_SETTINGS = {
-      tap: { volume: 0.26, rate: 1, max: 0.9 },
+      tap: { volume: 0.3, rate: 1, max: 0.9 },
       toggle: { file: 'tap', volume: 0.2, rate: 1.18, max: 0.45 },
-      hover: { volume: 0.11, rate: 1.04, max: 0.32 },
-      open: { volume: 0.24, rate: 1, max: 1.25 },
-      close: { volume: 0.19, rate: 1, max: 1 },
-      swipe: { volume: 0.2, rate: 1, max: 1 }
+      hover: { volume: 0.13, rate: 1.04, max: 0.32 },
+      open: { volume: 0.075, rate: 1, max: 1.25 },
+      close: { volume: 0.07, rate: 1, max: 1 },
+      swipe: { volume: 0.11, rate: 1, max: 1 }
     };
     const active = [];
 
