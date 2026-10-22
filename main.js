@@ -38,14 +38,19 @@
     let sfxLoading = null;
     let musicTimer = null;
     let loopActive = false;
-    const STORAGE_KEY = 'yana-sound-enabled';
-    // UI samples by SoundShelfStudio, free for use under the Pixabay Content License.
+    let musicStarted = false;
+    const STORAGE_KEY = 'yana-music-enabled';
+    const LEGACY_STORAGE_KEY = 'yana-sound-enabled';
+    const ENTRY_KEY = 'yana-music-entry';
+    // UI samples by SoundShelfStudio and the candle blow by kai_audio,
+    // free for use under the Pixabay Content License.
     const SFX_FILES = {
       tap: 'assets/sfx/ui-click.mp3',
       hover: 'assets/sfx/ui-hover.mp3',
       open: 'assets/sfx/ui-open.mp3',
       close: 'assets/sfx/ui-close.mp3',
-      swipe: 'assets/sfx/ui-swipe.mp3'
+      swipe: 'assets/sfx/ui-swipe.mp3',
+      candle: 'assets/sfx/candle-blow.mp3'
     };
     const SAMPLE_SETTINGS = {
       tap: { volume: 0.3, rate: 1, max: 0.9 },
@@ -53,15 +58,20 @@
       hover: { volume: 0.13, rate: 1.04, max: 0.32 },
       open: { volume: 0.075, rate: 1, max: 1.25 },
       close: { volume: 0.07, rate: 1, max: 1 },
-      swipe: { volume: 0.11, rate: 1, max: 1 }
+      swipe: { volume: 0.11, rate: 1, max: 1 },
+      candle: { volume: 0.34, rate: 1, max: 1.9 }
     };
-    const active = [];
+    const musicActive = [];
+    const sfxActive = [];
 
     function readPreference() {
       try {
         const stored = window.localStorage.getItem(STORAGE_KEY);
         if (stored === '0') return false;
         if (stored === '1') return true;
+        const legacy = window.localStorage.getItem(LEGACY_STORAGE_KEY);
+        if (legacy === '0') return false;
+        if (legacy === '1') return true;
       } catch (error) {}
       return true;
     }
@@ -72,7 +82,9 @@
       } catch (error) {}
     }
 
-    let enabled = readPreference();
+    let musicEnabled = readPreference();
+    // Interface sounds are always on and independent of the music preference.
+    const sfxEnabled = true;
 
     const NOTES = {
       C3: 130.81,
@@ -160,11 +172,12 @@
       loadSfx();
     }
 
-    function track(osc) {
-      active.push(osc);
-      osc.onended = () => {
-        const index = active.indexOf(osc);
-        if (index >= 0) active.splice(index, 1);
+    function track(source, list) {
+      const collection = list || musicActive;
+      collection.push(source);
+      source.onended = () => {
+        const index = collection.indexOf(source);
+        if (index >= 0) collection.splice(index, 1);
       };
     }
 
@@ -181,7 +194,7 @@
       gain.connect(bus);
       osc.start(when);
       osc.stop(when + duration + 0.05);
-      track(osc);
+      track(osc, musicActive);
     }
 
     function melodyNote(frequency, when, duration, volume) {
@@ -204,7 +217,7 @@
       fundamental.connect(filter);
       fundamental.start(when);
       fundamental.stop(when + duration + 0.85);
-      track(fundamental);
+      track(fundamental, musicActive);
 
       const shimmer = ctx.createOscillator();
       const shimmerGain = ctx.createGain();
@@ -215,7 +228,7 @@
       shimmerGain.connect(filter);
       shimmer.start(when);
       shimmer.stop(when + duration + 0.6);
-      track(shimmer);
+      track(shimmer, musicActive);
 
       const warmth = ctx.createOscillator();
       const warmthGain = ctx.createGain();
@@ -226,7 +239,7 @@
       warmthGain.connect(filter);
       warmth.start(when);
       warmth.stop(when + duration + 0.6);
-      track(warmth);
+      track(warmth, musicActive);
     }
 
     function padNote(frequency, when, duration, volume) {
@@ -251,12 +264,12 @@
         mix.connect(filter);
         osc.start(when);
         osc.stop(when + duration + 2);
-        track(osc);
+        track(osc, musicActive);
       });
     }
 
     function scheduleLoop() {
-      if (!enabled || !ctx || ctx.state !== 'running') {
+      if (!musicEnabled || !ctx || ctx.state !== 'running') {
         loopActive = false;
         return;
       }
@@ -279,12 +292,12 @@
     }
 
     function beginPlayback() {
-      if (!ctx || !enabled) return;
+      if (!ctx || !musicEnabled || !musicStarted) return;
       if (ctx.state !== 'running') {
         const resuming = ctx.resume();
         if (resuming && resuming.then) {
           resuming.then(() => {
-            if (enabled && ctx.state === 'running') beginPlayback();
+            if (musicEnabled && musicStarted && ctx.state === 'running') beginPlayback();
           }).catch(() => {});
         }
         return;
@@ -294,88 +307,128 @@
       scheduleLoop();
     }
 
-    function start() {
+    function fadeMusicIn() {
+      if (!ctx || !master) return;
+      master.gain.cancelScheduledValues(ctx.currentTime);
+      master.gain.setValueAtTime(Math.max(0.0001, master.gain.value), ctx.currentTime);
+      master.gain.exponentialRampToValueAtTime(0.58, ctx.currentTime + 1.8);
+    }
+
+    function startMusic() {
       init();
       if (!ctx) return false;
-      enabled = true;
+      musicEnabled = true;
+      musicStarted = true;
       savePreference(true);
       if (ctx.state === 'suspended') {
         const resuming = ctx.resume();
         if (resuming && resuming.catch) resuming.catch(() => {});
       }
-      master.gain.cancelScheduledValues(ctx.currentTime);
-      master.gain.setValueAtTime(Math.max(0.0001, master.gain.value), ctx.currentTime);
-      master.gain.exponentialRampToValueAtTime(0.58, ctx.currentTime + 1.8);
+      fadeMusicIn();
       beginPlayback();
       return true;
     }
 
-    function unlock() {
-      if (!enabled) return;
+    function armMusic() {
+      if (!musicEnabled) return false;
       init();
-      if (!ctx) return;
-      if (ctx.state === 'running') {
-        beginPlayback();
-        return;
-      }
-      const resuming = ctx.resume();
-      if (resuming && resuming.then) {
-        resuming.then(() => {
-          if (enabled) beginPlayback();
-        }).catch(() => {});
+      if (!ctx) return false;
+      musicStarted = true;
+      fadeMusicIn();
+      beginPlayback();
+      return true;
+    }
+
+    function markEntry() {
+      try { window.sessionStorage.setItem(ENTRY_KEY, '1'); } catch (error) {}
+    }
+
+    function consumeEntry() {
+      try {
+        const entered = window.sessionStorage.getItem(ENTRY_KEY) === '1';
+        if (entered) window.sessionStorage.removeItem(ENTRY_KEY);
+        return entered;
+      } catch (error) {
+        return false;
       }
     }
 
-    function stop() {
-      enabled = false;
-      savePreference(false);
+    function resume() {
+      if (!ctx) return;
+      if (ctx.state === 'suspended' && ctx.resume) {
+        const resuming = ctx.resume();
+        if (resuming && resuming.catch) resuming.catch(() => {});
+      }
+      if (musicEnabled && musicStarted) beginPlayback();
+    }
+
+    function stopMusic() {
+      musicEnabled = false;
+      musicStarted = false;
       loopActive = false;
+      savePreference(false);
       window.clearTimeout(musicTimer);
       if (ctx && master) {
         master.gain.cancelScheduledValues(ctx.currentTime);
         master.gain.setValueAtTime(Math.max(0.0001, master.gain.value), ctx.currentTime);
         master.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.8);
-        active.forEach(osc => {
-          try { osc.stop(ctx.currentTime + 0.05); } catch (e) {}
+        musicActive.forEach(source => {
+          try { source.stop(ctx.currentTime + 0.05); } catch (e) {}
         });
-        active.length = 0;
+        musicActive.length = 0;
+      }
+    }
+
+    function withSfx(play) {
+      if (!sfxEnabled) return;
+      init();
+      if (!ctx) return;
+      if (ctx.state === 'running') {
+        play();
+        return;
+      }
+      if (ctx.state === 'suspended' && ctx.resume) {
+        const resuming = ctx.resume();
+        if (resuming && resuming.then) {
+          resuming.then(() => {
+            if (sfxEnabled) play();
+          }).catch(() => {});
+        }
       }
     }
 
     function chime(freq, volume, delay) {
-      if (!enabled || !ctx) return;
-      const when = ctx.currentTime + (delay || 0);
-      note(freq || 880, when, 1.5, volume || 0.06, 'sine');
-      note((freq || 880) * 1.5, when + 0.08, 1.2, (volume || 0.06) * 0.55, 'sine');
-    }
-
-    function celebration() {
-      if (!enabled || !ctx) return;
-      const now = ctx.currentTime;
-      [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
-        note(f, now + i * 0.11, 1.7, 0.06, 'sine');
+      withSfx(() => {
+        const when = ctx.currentTime + (delay || 0);
+        const level = volume || 0.06;
+        sfxTone({ when, duration: 1.5, frequency: freq || 880, volume: level, type: 'sine', pan: 0 });
+        sfxTone({ when: when + 0.08, duration: 1.2, frequency: (freq || 880) * 1.5, volume: level * 0.55, type: 'sine', pan: 0 });
       });
     }
 
-    function blow() {
-      if (!enabled || !ctx) return;
-      const duration = 0.32;
-      const buffer = ctx.createBuffer(1, ctx.sampleRate * duration, ctx.sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let i = 0; i < data.length; i++) {
-        data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
-      }
-      const source = ctx.createBufferSource();
-      const filter = ctx.createBiquadFilter();
-      const gain = ctx.createGain();
-      source.buffer = buffer;
-      filter.type = 'lowpass';
-      filter.frequency.value = 900;
-      gain.gain.value = 0.035;
-      source.connect(filter);
-      filter.connect(gain);
-      gain.connect(master);
-      source.start();
+    function celebration() {
+      withSfx(() => {
+        const now = ctx.currentTime;
+        [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+          sfxTone({ when: now + i * 0.11, duration: 1.7, frequency: f, volume: 0.06, type: 'sine', pan: 0 });
+        });
+      });
+    }
+
+    function blow(pan) {
+      withSfx(() => {
+        if (playSample('candle', pan)) return;
+        // Fallback only if the real sample has not loaded yet.
+        sfxNoise({
+          when: ctx.currentTime + 0.004,
+          duration: 0.42,
+          volume: 0.03,
+          startFrequency: 1300,
+          endFrequency: 300,
+          q: 0.65,
+          pan
+        });
+      });
     }
 
     function clampPan(value) {
@@ -414,7 +467,7 @@
       connectSfx(gain, options.pan, when);
       osc.start(when);
       osc.stop(when + duration + 0.02);
-      track(osc);
+      track(osc, sfxActive);
     }
 
     function sfxNoise(options) {
@@ -447,6 +500,7 @@
       connectSfx(gain, options.pan, when);
       source.start(when);
       source.stop(when + duration + 0.02);
+      track(source, sfxActive);
     }
 
     function decodeAudio(arrayBuffer) {
@@ -558,7 +612,7 @@
       connectSfx(gain, pan, t);
       source.start(t);
       source.stop(t + maxDuration);
-      track(source);
+      track(source, sfxActive);
       return true;
     }
 
@@ -608,35 +662,24 @@
     }
 
     function ui(kind, pan) {
-      if (!enabled) return;
-      init();
-      if (!ctx) return;
-      if (ctx.state !== 'running') {
-        if (ctx.state === 'suspended' && ctx.resume) {
-          const resuming = ctx.resume();
-          if (resuming && resuming.then) {
-            resuming.then(() => {
-              if (enabled) playUiEntry(kind, pan);
-            }).catch(() => {});
-          }
-        }
-        return;
-      }
-      playUiEntry(kind, pan);
+      withSfx(() => playUiEntry(kind, pan));
     }
 
     return {
-      toggle: () => {
-        if (enabled) { stop(); return false; }
-        return start();
+      toggleMusic: () => {
+        if (musicEnabled) { stopMusic(); return false; }
+        return startMusic();
       },
-      start,
-      unlock,
+      startMusic,
+      armMusic,
+      markEntry,
+      consumeEntry,
+      resume,
       chime,
       celebration,
       blow,
       ui,
-      isEnabled: () => enabled
+      isMusicEnabled: () => musicEnabled
     };
   })();
 
@@ -2592,7 +2635,8 @@
       candle.group.getWorldPosition(worldPosition);
       worldPosition.y += 0.6;
       makeSmoke(worldPosition);
-      Sound.blow();
+      const pan = ((index / Math.max(1, state.total - 1)) - 0.5) * 0.6;
+      Sound.blow(pan);
       notifyCandleChange();
       if (state.lit === 0 && !state.allOut) {
         state.allOut = true;
@@ -2864,6 +2908,8 @@
     if (leavingPage) return;
     leavingPage = true;
     Sound.chime(784, 0.055);
+    Sound.markEntry();
+    Sound.armMusic();
     document.body.classList.add('is-leaving');
     const overlay = $('#page-transition');
     if (overlay) overlay.setAttribute('aria-hidden', 'false');
@@ -3161,39 +3207,41 @@
     function syncSoundUI(on) {
       button.setAttribute('aria-pressed', on ? 'true' : 'false');
       button.setAttribute('aria-label', on ? 'Turn birthday music off' : 'Turn birthday music on');
-      if (label) label.textContent = on ? 'Sound on' : 'Sound off';
+      if (label) label.textContent = on ? 'Music on' : 'Music off';
     }
 
-    syncSoundUI(Sound.isEnabled());
-    if (Sound.isEnabled()) Sound.start();
+    syncSoundUI(Sound.isMusicEnabled());
+
+    // Music is only armed by the first-page Begin CTA. On wishes.html that
+    // intent arrives through session storage; if autoplay is blocked, the
+    // first gesture finishes the job. The landing page discards stale intent.
+    const entered = document.body.classList.contains('wishes-page');
+    if (!entered) {
+      Sound.consumeEntry();
+    } else if (Sound.consumeEntry() && Sound.isMusicEnabled()) {
+      Sound.armMusic();
+      const resumeMusic = () => {
+        Sound.armMusic();
+        window.removeEventListener('pointerdown', resumeMusic);
+        window.removeEventListener('touchstart', resumeMusic);
+        window.removeEventListener('keydown', resumeMusic);
+        window.removeEventListener('wheel', resumeMusic);
+      };
+      window.addEventListener('pointerdown', resumeMusic, { passive: true });
+      window.addEventListener('touchstart', resumeMusic, { passive: true });
+      window.addEventListener('keydown', resumeMusic);
+      window.addEventListener('wheel', resumeMusic, { passive: true });
+    }
 
     button.addEventListener('click', () => {
-      if (Sound.isEnabled()) Sound.ui('toggle');
-      const on = Sound.toggle();
+      Sound.ui('toggle');
+      const on = Sound.toggleMusic();
       syncSoundUI(on);
       if (on) showToast('Happy Birthday, slow & dreamy ✦', 2800);
     });
 
-    let unlocked = false;
-    function unlockSound(event) {
-      const target = event && event.target;
-      if (target && target.closest && target.closest('#sound-toggle')) return;
-      if (unlocked) return;
-      unlocked = true;
-      Sound.unlock();
-      window.removeEventListener('pointerdown', unlockSound);
-      window.removeEventListener('touchstart', unlockSound);
-      window.removeEventListener('keydown', unlockSound);
-      window.removeEventListener('wheel', unlockSound);
-    }
-
-    window.addEventListener('pointerdown', unlockSound, { passive: true });
-    window.addEventListener('touchstart', unlockSound, { passive: true });
-    window.addEventListener('keydown', unlockSound);
-    window.addEventListener('wheel', unlockSound, { passive: true });
-
     document.addEventListener('visibilitychange', () => {
-      if (!document.hidden && Sound.isEnabled()) Sound.unlock();
+      if (!document.hidden) Sound.resume();
     });
   }
 
