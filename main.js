@@ -58,15 +58,14 @@
     const STORAGE_KEY = 'yana-music-enabled';
     const LEGACY_STORAGE_KEY = 'yana-sound-enabled';
     const ENTRY_KEY = 'yana-music-entry';
-    // UI samples by SoundShelfStudio and the candle blow by kai_audio,
-    // free for use under the Pixabay Content License.
+    // UI samples by SoundShelfStudio, free for use under the Pixabay
+    // Content License.
     const SFX_FILES = {
       tap: 'assets/sfx/ui-click.mp3',
       hover: 'assets/sfx/ui-hover.mp3',
       open: 'assets/sfx/ui-open.mp3',
       close: 'assets/sfx/ui-close.mp3',
-      swipe: 'assets/sfx/ui-swipe.mp3',
-      candle: 'assets/sfx/candle-blow.mp3'
+      swipe: 'assets/sfx/ui-swipe.mp3'
     };
     const SAMPLE_SETTINGS = {
       tap: { volume: 0.3, rate: 1, max: 0.9 },
@@ -74,8 +73,7 @@
       hover: { volume: 0.13, rate: 1.04, max: 0.32 },
       open: { volume: 0.075, rate: 1, max: 1.25 },
       close: { volume: 0.07, rate: 1, max: 1 },
-      swipe: { volume: 0.11, rate: 1, max: 1 },
-      candle: { volume: 0.34, rate: 1, max: 1.9 }
+      swipe: { volume: 0.11, rate: 1, max: 1 }
     };
     const musicActive = [];
     const sfxActive = [];
@@ -447,17 +445,25 @@
 
     function blow(pan) {
       withSfx(() => {
-        if (playSample('candle', pan)) return;
-        // Fallback only if the real sample has not loaded yet.
-        sfxNoise({
-          when: ctx.currentTime + 0.004,
-          duration: 0.42,
-          volume: 0.03,
-          startFrequency: 1300,
-          endFrequency: 300,
-          q: 0.65,
-          pan
-        });
+        const when = ctx.currentTime + 0.004;
+        const duration = 0.32;
+        const buffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * duration), ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < data.length; i++) {
+          data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+        }
+        const source = ctx.createBufferSource();
+        const filter = ctx.createBiquadFilter();
+        const gain = ctx.createGain();
+        source.buffer = buffer;
+        filter.type = 'lowpass';
+        filter.frequency.value = 900;
+        gain.gain.value = 0.035;
+        source.connect(filter);
+        filter.connect(gain);
+        connectSfx(gain, 0, when);
+        source.start(when);
+        track(source, sfxActive);
       });
     }
 
@@ -621,11 +627,8 @@
           .catch(() => {});
       };
 
-      // Small interface samples first; the long candle breath loads last.
-      const quick = keys.filter(key => key !== 'candle');
-      const slow = keys.filter(key => key === 'candle');
-      sfxLoading = Promise.all(quick.map(loadOne))
-        .then(() => Promise.all(slow.map(loadOne)))
+      // Load the small interface samples in parallel.
+      sfxLoading = Promise.all(keys.map(loadOne))
         .then(() => { sfxLoading = null; });
       return sfxLoading;
     }
