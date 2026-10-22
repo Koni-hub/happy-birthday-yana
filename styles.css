@@ -160,8 +160,9 @@ a { color: inherit; }
   inset: 0;
   z-index: 95;
   pointer-events: none;
-  opacity: 0.048;
-  mix-blend-mode: soft-light;
+  opacity: 0.05;
+  /* No mix-blend-mode: blending a full-viewport layer over a live WebGL
+     canvas forces the compositor to re-blend the whole page each frame. */
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.92' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.75'/%3E%3C/svg%3E");
 }
 
@@ -988,8 +989,7 @@ body.is-ready .hero .title-name > span {
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 999px;
   color: rgba(251, 238, 231, 0.5);
-  background: rgba(17, 10, 23, 0.48);
-  backdrop-filter: blur(10px);
+  background: rgba(17, 10, 23, 0.62);
   font-size: 7px;
   font-weight: 500;
   letter-spacing: 0.18em;

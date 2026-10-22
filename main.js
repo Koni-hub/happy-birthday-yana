@@ -1780,28 +1780,55 @@
       headGroup.add(brim);
       const fluffSegments = lowPower ? [8, 6] : [12, 10];
       const fluffCounts = lowPower ? [12, 8, 4] : [26, 18, 8];
+      // One instanced draw call instead of ~50 separate shadow-casting
+      // spheres — the biggest draw-call saving on the landing page.
+      const fluffTotal = fluffCounts[0] + fluffCounts[1] + fluffCounts[2];
+      const fluff = new THREE.InstancedMesh(
+        new THREE.SphereGeometry(1, fluffSegments[0], fluffSegments[1]),
+        fur,
+        fluffTotal
+      );
+      const fluffMatrix = new THREE.Matrix4();
+      const fluffQuat = new THREE.Quaternion();
+      const fluffPos = new THREE.Vector3();
+      const fluffScale = new THREE.Vector3();
+      let fluffIndex = 0;
+      const placeFluff = (x, y, z, radius) => {
+        fluffPos.set(x, y, z);
+        fluffScale.setScalar(radius);
+        fluffMatrix.compose(fluffPos, fluffQuat, fluffScale);
+        fluff.setMatrixAt(fluffIndex++, fluffMatrix);
+      };
       for (let i = 0; i < fluffCounts[0]; i++) {
         const angle = (i / fluffCounts[0]) * Math.PI * 2;
-        const fluff = new THREE.Mesh(new THREE.SphereGeometry(rand(0.055, 0.098), fluffSegments[0], fluffSegments[1]), fur);
-        fluff.position.set(Math.cos(angle) * 0.55, 0.29 + rand(-0.04, 0.04), Math.sin(angle) * 0.55);
-        headGroup.add(fluff);
+        placeFluff(
+          Math.cos(angle) * 0.55,
+          0.29 + rand(-0.04, 0.04),
+          Math.sin(angle) * 0.55,
+          rand(0.055, 0.098)
+        );
       }
       for (let i = 0; i < fluffCounts[1]; i++) {
         const angle = (i / fluffCounts[1]) * Math.PI * 2;
-        const fluff = new THREE.Mesh(new THREE.SphereGeometry(rand(0.05, 0.085), fluffSegments[0], fluffSegments[1]), fur);
-        fluff.position.set(
+        placeFluff(
           Math.cos(angle) * rand(0.46, 0.51),
           0.44 + rand(-0.06, 0.11),
-          Math.sin(angle) * rand(0.46, 0.51)
+          Math.sin(angle) * rand(0.46, 0.51),
+          rand(0.05, 0.085)
         );
-        headGroup.add(fluff);
       }
       for (let i = 0; i < fluffCounts[2]; i++) {
         const angle = (i / fluffCounts[2]) * Math.PI * 2;
-        const fluff = new THREE.Mesh(new THREE.SphereGeometry(rand(0.045, 0.065), fluffSegments[0], fluffSegments[1]), fur);
-        fluff.position.set(Math.cos(angle) * 0.24, 0.78 + rand(-0.01, 0.02), Math.sin(angle) * 0.24);
-        headGroup.add(fluff);
+        placeFluff(
+          Math.cos(angle) * 0.24,
+          0.78 + rand(-0.01, 0.02),
+          Math.sin(angle) * 0.24,
+          rand(0.045, 0.065)
+        );
       }
+      fluff.instanceMatrix.needsUpdate = true;
+      fluff.computeBoundingSphere();
+      headGroup.add(fluff);
     } else if (config.hat === 'cat') {
       for (const side of [-1, 1]) {
         const ear = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.27, 4), dress);
@@ -1875,6 +1902,15 @@
     halo.position.set(0, 2.05, -0.6);
     root.add(halo);
 
+    /* Invisible picking proxy — a single cheap cylinder instead of a
+       recursive raycast through every sculpted part on each pointer move. */
+    const hitArea = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.8, 0.95, 4.6, 10, 1, true),
+      new THREE.MeshBasicMaterial({ visible: false })
+    );
+    hitArea.position.y = 2.15;
+    root.add(hitArea);
+
     root.position.set(config.x, 0, config.z);
     root.rotation.y = -config.x * 0.105;
 
@@ -1891,6 +1927,7 @@
       label,
       selectionRing,
       halo,
+      hitArea,
       miniCake,
       phase: config.phase,
       baseY: 0,
@@ -2058,9 +2095,13 @@
     const girls = girlConfigs.map((config, index) => {
       const girl = createGirl(config, index);
       girl.root.userData.girlIndex = index;
+      girl.hitArea.userData.girlIndex = index;
       scene.add(girl.root);
       return girl;
     });
+    // Picking reads only these cheap proxy cylinders instead of the whole
+    // sculpted figure, which used to cost hundreds of triangle tests per event.
+    const hitAreas = girls.map(girl => girl.hitArea);
 
     /* interaction state */
     const state = {
@@ -2091,15 +2132,8 @@
 
     function pickGirl() {
       raycaster.setFromCamera(pointer, camera);
-      const intersects = raycaster.intersectObjects(girls.map(girl => girl.root), true);
-      for (let i = 0; i < intersects.length; i++) {
-        let object = intersects[i].object;
-        while (object) {
-          if (object.userData.girlIndex !== undefined) return object.userData.girlIndex;
-          object = object.parent;
-        }
-      }
-      return -1;
+      const intersects = raycaster.intersectObjects(hitAreas, false);
+      return intersects.length ? intersects[0].object.userData.girlIndex : -1;
     }
 
     function applySelectionUI() {
@@ -2124,8 +2158,29 @@
       if (typeof state.onSelect === 'function') state.onSelect(-1, null);
     }
 
+    // Hover picking is throttled: pointermove can fire faster than the scene
+    // renders, and each pick has to be transformed through the camera.
+    let hoverTimer = 0;
+    let lastHoverAt = 0;
+    function cancelHoverTimer() {
+      if (!hoverTimer) return;
+      window.clearTimeout(hoverTimer);
+      hoverTimer = 0;
+    }
     function updateHover() {
       if (state.pointerDown) return;
+      const now = performance.now();
+      const wait = 70 - (now - lastHoverAt);
+      if (wait > 0) {
+        if (!hoverTimer) {
+          hoverTimer = window.setTimeout(() => {
+            hoverTimer = 0;
+            updateHover();
+          }, wait);
+        }
+        return;
+      }
+      lastHoverAt = now;
       const hit = pickGirl();
       if (hit !== state.hovered) {
         state.hovered = hit;
@@ -2136,6 +2191,7 @@
 
     canvas.addEventListener('pointerdown', event => {
       if (event.button !== undefined && event.button !== 0) return;
+      cancelHoverTimer();
       state.pointerDown = true;
       state.dragging = false;
       state.moved = 0;
@@ -2180,6 +2236,7 @@
     canvas.addEventListener('pointerup', endPointer);
     canvas.addEventListener('pointercancel', endPointer);
     canvas.addEventListener('pointerleave', () => {
+      cancelHoverTimer();
       if (!state.pointerDown) {
         state.hovered = -1;
         girls.forEach(girl => { girl.hover = false; });
@@ -3416,7 +3473,8 @@
     let last = performance.now();
     let frameCap = 0;
     let lite = false;
-    let monitorAt = last + 1500;
+    let readyAt = last + 600;
+    let windowStart = 0;
     let sampleFrames = 0;
     let sampleTotal = 0;
 
@@ -3459,19 +3517,25 @@
         }
         if (carouselUpdate) carouselUpdate(dt);
 
-        if (!lite && now > monitorAt && active) {
-          if (raw > 0 && raw < 100) {
-            sampleFrames++;
-            sampleTotal += raw;
-          }
-          if (sampleFrames >= 50) {
+        if (!lite && active && now > readyAt) {
+          if (!windowStart) windowStart = now;
+          sampleFrames++;
+          // Clamp stalls (first frame after a hidden tab) so one long frame
+          // cannot force the low-power mode on by itself.
+          sampleTotal += Math.min(raw, 100);
+          // Decide on elapsed time too, so a scene that is already struggling
+          // drops quality within a second instead of after 50 frames.
+          if (sampleFrames >= 24 || now - windowStart >= 900) {
             if (sampleTotal / sampleFrames > 24) enableLite();
             sampleFrames = 0;
             sampleTotal = 0;
+            windowStart = 0;
           }
         } else if (!active) {
           sampleFrames = 0;
           sampleTotal = 0;
+          windowStart = 0;
+          readyAt = now + 400;
         }
       }
       window.requestAnimationFrame(loop);
@@ -3480,17 +3544,32 @@
     window.requestAnimationFrame(loop);
   }
 
+  // Let the loader paint before the heavier 3D work starts. A timer backs up
+  // requestAnimationFrame, which is paused entirely in a background tab — that
+  // used to leave the loader spinning until the 25s hard stop.
+  function afterPaint() {
+    return new Promise(resolve => {
+      let settled = false;
+      const done = () => {
+        if (settled) return;
+        settled = true;
+        resolve();
+      };
+      window.requestAnimationFrame(() => window.requestAnimationFrame(done));
+      window.setTimeout(done, 140);
+    });
+  }
+
   async function boot() {
     const Loader = window.YanaLoader;
 
     if (Loader) Loader.setStatus('warming up her little world');
-    // Let the loader paint before the heavier 3D work starts.
-    await new Promise(resolve => window.requestAnimationFrame(() => window.requestAnimationFrame(resolve)));
+    await afterPaint();
 
     if (document.fonts && document.fonts.ready) {
       await Promise.race([
         document.fonts.ready.catch(() => {}),
-        wait(1200)
+        wait(900)
       ]);
     }
 
@@ -3525,11 +3604,11 @@
 
       const referencePhoto = $('.reference-photo img');
       if (referencePhoto && referencePhoto.decode && !referencePhoto.complete) {
-        await Promise.race([referencePhoto.decode().catch(() => {}), wait(1200)]);
+        await Promise.race([referencePhoto.decode().catch(() => {}), wait(500)]);
       }
 
       if (Loader) Loader.setStatus('one last ribbon');
-      await whenWindowLoaded(2500);
+      await whenWindowLoaded(1500);
       celebrateLoader();
     } catch (error) {
       console.error('The birthday page had trouble starting:', error);

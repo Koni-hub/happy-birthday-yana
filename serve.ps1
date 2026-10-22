@@ -34,6 +34,14 @@ while ($listener.IsListening) {
         default { "application/octet-stream" }
       }
       $response.ContentType = $mime
+      # Versioned assets can be cached hard; the HTML must always revalidate.
+      if ($ext -eq ".html") {
+        $response.Headers.Add("Cache-Control", "no-cache")
+      } elseif ($ext -eq ".js" -or $ext -eq ".css") {
+        $response.Headers.Add("Cache-Control", "public, max-age=31536000, immutable")
+      } else {
+        $response.Headers.Add("Cache-Control", "public, max-age=86400")
+      }
       $response.ContentLength64 = $bytes.Length
       $response.OutputStream.Write($bytes, 0, $bytes.Length)
     } else {
