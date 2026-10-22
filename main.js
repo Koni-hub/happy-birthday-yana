@@ -32,6 +32,7 @@
     let ctx = null;
     let master = null;
     let bus = null;
+    let sfx = null;
     let musicTimer = null;
     let loopActive = false;
     const STORAGE_KEY = 'yana-sound-enabled';
@@ -123,6 +124,15 @@
       bus.connect(reverb);
       reverb.connect(wet);
       wet.connect(master);
+
+      // Crisp little interface layer, kept mostly dry with a short reverb send.
+      sfx = ctx.createGain();
+      sfx.gain.value = 0.9;
+      sfx.connect(master);
+      const sfxSend = ctx.createGain();
+      sfxSend.gain.value = 0.12;
+      sfx.connect(sfxSend);
+      sfxSend.connect(reverb);
     }
 
     function track(osc) {
@@ -343,6 +353,136 @@
       source.start();
     }
 
+    function clampPan(value) {
+      return Math.max(-0.7, Math.min(0.7, typeof value === 'number' ? value : 0));
+    }
+
+    function connectSfx(node, pan, when) {
+      if (typeof ctx.createStereoPanner === 'function') {
+        const panner = ctx.createStereoPanner();
+        panner.pan.setValueAtTime(clampPan(pan), when);
+        node.connect(panner);
+        panner.connect(sfx);
+      } else {
+        node.connect(sfx);
+      }
+    }
+
+    function sfxTone(options) {
+      if (!ctx || !sfx) return;
+      const when = options.when;
+      const duration = Math.max(0.03, options.duration || 0.12);
+      const frequency = Math.max(30, options.frequency || 660);
+      const endFrequency = Math.max(30, options.endFrequency || frequency);
+      const volume = Math.max(0.0002, options.volume || 0.02);
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = options.type || 'sine';
+      osc.frequency.setValueAtTime(frequency, when);
+      if (endFrequency !== frequency) {
+        osc.frequency.exponentialRampToValueAtTime(endFrequency, when + duration);
+      }
+      gain.gain.setValueAtTime(0.0001, when);
+      gain.gain.exponentialRampToValueAtTime(volume, when + Math.min(0.012, duration * 0.35));
+      gain.gain.exponentialRampToValueAtTime(0.0001, when + duration);
+      osc.connect(gain);
+      connectSfx(gain, options.pan, when);
+      osc.start(when);
+      osc.stop(when + duration + 0.02);
+      track(osc);
+    }
+
+    function sfxNoise(options) {
+      if (!ctx || !sfx) return;
+      const when = options.when;
+      const duration = Math.max(0.03, options.duration || 0.12);
+      const volume = Math.max(0.0001, options.volume || 0.012);
+      const startFrequency = Math.max(80, options.startFrequency || 1800);
+      const endFrequency = Math.max(80, options.endFrequency || 500);
+      const length = Math.max(1, Math.floor(ctx.sampleRate * duration));
+      const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < length; i++) {
+        const fade = Math.sin((i / length) * Math.PI);
+        data[i] = (Math.random() * 2 - 1) * fade;
+      }
+      const source = ctx.createBufferSource();
+      const filter = ctx.createBiquadFilter();
+      const gain = ctx.createGain();
+      source.buffer = buffer;
+      filter.type = options.filterType || 'bandpass';
+      filter.Q.value = options.q || 0.8;
+      filter.frequency.setValueAtTime(startFrequency, when);
+      filter.frequency.exponentialRampToValueAtTime(endFrequency, when + duration);
+      gain.gain.setValueAtTime(0.0001, when);
+      gain.gain.exponentialRampToValueAtTime(volume, when + 0.006);
+      gain.gain.exponentialRampToValueAtTime(0.0001, when + duration);
+      source.connect(filter);
+      filter.connect(gain);
+      connectSfx(gain, options.pan, when);
+      source.start(when);
+      source.stop(when + duration + 0.02);
+    }
+
+    function playUi(kind, pan) {
+      if (!ctx || !sfx) return;
+      const t = ctx.currentTime + 0.004;
+      const p = clampPan(pan);
+      const color = (Math.random() * 2 - 1) * 34;
+
+      switch (kind) {
+        case 'hover':
+          sfxTone({ when: t, duration: 0.055, frequency: 1960 + color, endFrequency: 2180 + color, volume: 0.006, type: 'sine', pan: p });
+          break;
+        case 'toggle':
+          sfxTone({ when: t, duration: 0.07, frequency: 760, endFrequency: 920, volume: 0.014, type: 'triangle', pan: p });
+          sfxTone({ when: t + 0.045, duration: 0.09, frequency: 1180, endFrequency: 1420, volume: 0.008, type: 'sine', pan: p });
+          break;
+        case 'open':
+          sfxNoise({ when: t, duration: 0.24, volume: 0.011, startFrequency: 520, endFrequency: 2600, q: 0.7, pan: p });
+          sfxTone({ when: t + 0.01, duration: 0.28, frequency: 392, endFrequency: 587.33, volume: 0.015, type: 'sine', pan: p });
+          sfxTone({ when: t + 0.05, duration: 0.24, frequency: 783.99, endFrequency: 1174.66, volume: 0.007, type: 'sine', pan: p });
+          break;
+        case 'close':
+          sfxNoise({ when: t, duration: 0.2, volume: 0.008, startFrequency: 2300, endFrequency: 420, q: 0.8, pan: p });
+          sfxTone({ when: t, duration: 0.2, frequency: 587.33, endFrequency: 392, volume: 0.012, type: 'sine', pan: p });
+          break;
+        case 'swipe':
+          sfxNoise({ when: t, duration: 0.18, volume: 0.012, startFrequency: 1900, endFrequency: 360, q: 0.9, pan: p });
+          sfxTone({ when: t, duration: 0.14, frequency: 190, endFrequency: 120, volume: 0.007, type: 'sine', pan: p });
+          break;
+        case 'success':
+          [659.25, 783.99, 987.77, 1318.51].forEach((frequency, index) => {
+            sfxTone({ when: t + index * 0.075, duration: 0.5, frequency: frequency, endFrequency: frequency, volume: 0.012, type: 'sine', pan: p });
+          });
+          break;
+        case 'tap':
+        default:
+          sfxNoise({ when: t, duration: 0.02, volume: 0.007, startFrequency: 4200, endFrequency: 2600, q: 0.9, pan: p });
+          sfxTone({ when: t, duration: 0.09, frequency: 620 + color, endFrequency: 480, volume: 0.018, type: 'triangle', pan: p });
+          sfxTone({ when: t + 0.004, duration: 0.06, frequency: 1240 + color, endFrequency: 960, volume: 0.005, type: 'sine', pan: p });
+          break;
+      }
+    }
+
+    function ui(kind, pan) {
+      if (!enabled) return;
+      init();
+      if (!ctx) return;
+      if (ctx.state !== 'running') {
+        if (ctx.state === 'suspended' && ctx.resume) {
+          const resuming = ctx.resume();
+          if (resuming && resuming.then) {
+            resuming.then(() => {
+              if (enabled) playUi(kind, pan);
+            }).catch(() => {});
+          }
+        }
+        return;
+      }
+      playUi(kind, pan);
+    }
+
     return {
       toggle: () => {
         if (enabled) { stop(); return false; }
@@ -353,6 +493,7 @@
       chime,
       celebration,
       blow,
+      ui,
       isEnabled: () => enabled
     };
   })();
@@ -2623,6 +2764,7 @@
       viewer.setAttribute('aria-hidden', 'false');
       document.body.classList.add('is-locked');
       closeButton.focus();
+      Sound.ui('open', 0.12);
     }
 
     function closeViewer() {
@@ -2630,6 +2772,7 @@
       viewer.setAttribute('aria-hidden', 'true');
       document.body.classList.remove('is-locked');
       if (lastFocused && lastFocused.focus) lastFocused.focus();
+      Sound.ui('close', 0.12);
     }
 
     openButton.addEventListener('click', openViewer);
@@ -2714,6 +2857,7 @@
     let hovered = false;
     let visible = true;
     let suppressedClick = false;
+    let swipeSounded = false;
 
     const visibilityObserver = new IntersectionObserver(entries => {
       entries.forEach(entry => { visible = entry.isIntersecting; });
@@ -2724,6 +2868,7 @@
       if (event.button !== undefined && event.button !== 0) return;
       dragging = true;
       moved = 0;
+      swipeSounded = false;
       lastX = event.clientX;
       carousel.classList.add('is-grabbing');
       try { carousel.setPointerCapture(event.pointerId); } catch (e) {}
@@ -2735,6 +2880,11 @@
       lastX = event.clientX;
       moved += Math.abs(dx);
       if (moved > 5) suppressedClick = true;
+      if (!swipeSounded && moved > 22) {
+        swipeSounded = true;
+        const width = window.innerWidth || 1;
+        Sound.ui('swipe', Math.max(-0.55, Math.min(0.55, (event.clientX / width - 0.5) * 0.9)));
+      }
       targetAngle += dx * 0.28;
     });
 
@@ -2799,6 +2949,7 @@
       lightbox.setAttribute('aria-hidden', 'false');
       document.body.classList.add('is-locked');
       close.focus();
+      Sound.ui('open', -0.1);
     };
 
     function closeLightbox() {
@@ -2806,6 +2957,7 @@
       lightbox.setAttribute('aria-hidden', 'true');
       document.body.classList.remove('is-locked');
       if (lastFocused && lastFocused.focus) lastFocused.focus();
+      Sound.ui('close', -0.1);
     }
 
     close.addEventListener('click', closeLightbox);
@@ -2874,6 +3026,7 @@
     if (Sound.isEnabled()) Sound.start();
 
     button.addEventListener('click', () => {
+      if (Sound.isEnabled()) Sound.ui('toggle');
       const on = Sound.toggle();
       syncSoundUI(on);
       if (on) showToast('Happy Birthday, slow & dreamy ✦', 2800);
@@ -2900,6 +3053,57 @@
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden && Sound.isEnabled()) Sound.unlock();
     });
+  }
+
+  function setupInteractionSounds() {
+    const selector = 'a, button, [role="button"], input, select, textarea, label, summary';
+    const finePointer = window.matchMedia
+      ? window.matchMedia('(hover: hover) and (pointer: fine)').matches
+      : false;
+
+    function interactiveTarget(event) {
+      const target = event.target;
+      if (!target || !target.closest) return null;
+      return target.closest(selector);
+    }
+
+    function panFor(event) {
+      const width = window.innerWidth || 1;
+      const x = typeof event.clientX === 'number' ? event.clientX : width / 2;
+      return Math.max(-0.55, Math.min(0.55, (x / width - 0.5) * 0.9));
+    }
+
+    document.addEventListener('pointerdown', event => {
+      const target = interactiveTarget(event);
+      if (!target || target.closest('#sound-toggle')) return;
+      Sound.ui('tap', panFor(event));
+    }, { passive: true });
+
+    // Keyboard activations produce a click with detail 0; pointer clicks are
+    // already covered by pointerdown, so this avoids double taps.
+    document.addEventListener('click', event => {
+      const target = interactiveTarget(event);
+      if (event.detail !== 0 || !target || target.closest('#sound-toggle')) return;
+      Sound.ui('tap', 0);
+    });
+
+    if (finePointer) {
+      let lastHoverAt = 0;
+      let lastHoverTarget = null;
+      document.addEventListener('pointerover', event => {
+        const target = interactiveTarget(event);
+        if (!target || target === lastHoverTarget) return;
+        if (event.relatedTarget && target.contains(event.relatedTarget)) {
+          lastHoverTarget = target;
+          return;
+        }
+        const now = performance.now();
+        if (now - lastHoverAt < 55) return;
+        lastHoverAt = now;
+        lastHoverTarget = target;
+        Sound.ui('hover', panFor(event));
+      }, { passive: true });
+    }
   }
 
   function setupKissButton() {
@@ -3019,6 +3223,7 @@
       setupLightbox();
       setupPersonalNote();
       setupSoundUI();
+      setupInteractionSounds();
       setupKissButton();
 
       const referencePhoto = $('.reference-photo img');
