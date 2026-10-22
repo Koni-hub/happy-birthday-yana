@@ -242,7 +242,7 @@ a { color: inherit; }
 .site-header {
   position: fixed;
   inset: 0 0 auto;
-  z-index: 80;
+  z-index: 120;
   height: 88px;
   display: flex;
   align-items: center;
@@ -376,7 +376,7 @@ body.on-light .sound-toggle:hover { color: var(--plum); border-color: rgba(168, 
   position: fixed;
   top: 50%;
   right: 23px;
-  z-index: 78;
+  z-index: 115;
   display: flex;
   flex-direction: column;
   gap: 17px;
@@ -599,7 +599,7 @@ body.is-ready .letter .reveal { animation-delay: 0.1s; }
 .hero-copy {
   position: absolute;
   inset: 0;
-  z-index: 3;
+  z-index: 100;
   overflow: visible;
   display: flex;
   flex-direction: column;
@@ -999,7 +999,7 @@ body.is-ready .hero .title-name > span {
 .drag-icon { color: var(--rose); font-size: 11px; letter-spacing: 0; }
 .scroll-cue {
   position: absolute;
-  z-index: 5;
+  z-index: 110;
   left: clamp(24px, 6vw, 112px);
   bottom: 22px;
   display: flex;

@@ -33,9 +33,27 @@
     let master = null;
     let bus = null;
     let sfx = null;
+    let sfxBuffers = null;
+    let sfxLoading = null;
     let musicTimer = null;
     let loopActive = false;
     const STORAGE_KEY = 'yana-sound-enabled';
+    // UI samples by SoundShelfStudio, free for use under the Pixabay Content License.
+    const SFX_FILES = {
+      tap: 'assets/sfx/ui-click.mp3',
+      hover: 'assets/sfx/ui-hover.mp3',
+      open: 'assets/sfx/ui-open.mp3',
+      close: 'assets/sfx/ui-close.mp3',
+      swipe: 'assets/sfx/ui-swipe.mp3'
+    };
+    const SAMPLE_SETTINGS = {
+      tap: { volume: 0.26, rate: 1, max: 0.9 },
+      toggle: { file: 'tap', volume: 0.2, rate: 1.18, max: 0.45 },
+      hover: { volume: 0.11, rate: 1.04, max: 0.32 },
+      open: { volume: 0.24, rate: 1, max: 1.25 },
+      close: { volume: 0.19, rate: 1, max: 1 },
+      swipe: { volume: 0.2, rate: 1, max: 1 }
+    };
     const active = [];
 
     function readPreference() {
@@ -130,9 +148,11 @@
       sfx.gain.value = 0.9;
       sfx.connect(master);
       const sfxSend = ctx.createGain();
-      sfxSend.gain.value = 0.12;
+      sfxSend.gain.value = 0.05;
       sfx.connect(sfxSend);
       sfxSend.connect(reverb);
+
+      loadSfx();
     }
 
     function track(osc) {
@@ -424,6 +444,119 @@
       source.stop(when + duration + 0.02);
     }
 
+    function decodeAudio(arrayBuffer) {
+      return new Promise((resolve, reject) => {
+        const result = ctx.decodeAudioData(arrayBuffer, resolve, reject);
+        if (result && result.then) result.then(resolve, reject);
+      });
+    }
+
+    function trimAndNormalize(buffer) {
+      const channels = buffer.numberOfChannels;
+      const length = buffer.length;
+      let peak = 0;
+      for (let channel = 0; channel < channels; channel++) {
+        const data = buffer.getChannelData(channel);
+        for (let i = 0; i < length; i++) {
+          const value = Math.abs(data[i]);
+          if (value > peak) peak = value;
+        }
+      }
+      if (peak < 0.001) return buffer;
+
+      const threshold = Math.max(0.002, peak * 0.012);
+      let start = 0;
+      let end = length - 1;
+      while (start < length) {
+        let loud = false;
+        for (let channel = 0; channel < channels; channel++) {
+          if (Math.abs(buffer.getChannelData(channel)[start]) > threshold) { loud = true; break; }
+        }
+        if (loud) break;
+        start++;
+      }
+      while (end > start) {
+        let loud = false;
+        for (let channel = 0; channel < channels; channel++) {
+          if (Math.abs(buffer.getChannelData(channel)[end]) > threshold) { loud = true; break; }
+        }
+        if (loud) break;
+        end--;
+      }
+      if (start >= end) return buffer;
+
+      const pad = Math.floor(buffer.sampleRate * 0.008);
+      start = Math.max(0, start - pad);
+      end = Math.min(length - 1, end + pad);
+      const trimmed = ctx.createBuffer(channels, end - start + 1, buffer.sampleRate);
+      let trimmedPeak = 0;
+      for (let channel = 0; channel < channels; channel++) {
+        const source = buffer.getChannelData(channel).subarray(start, end + 1);
+        trimmed.getChannelData(channel).set(source);
+        for (let i = 0; i < source.length; i++) {
+          const value = Math.abs(source[i]);
+          if (value > trimmedPeak) trimmedPeak = value;
+        }
+      }
+      if (trimmedPeak > 0) {
+        const gain = 0.9 / trimmedPeak;
+        for (let channel = 0; channel < channels; channel++) {
+          const data = trimmed.getChannelData(channel);
+          for (let i = 0; i < data.length; i++) data[i] *= gain;
+        }
+      }
+      return trimmed;
+    }
+
+    function loadSfx() {
+      if (sfxLoading) return sfxLoading;
+      if (!ctx || !window.fetch) return Promise.resolve();
+      if (!sfxBuffers) sfxBuffers = {};
+      const keys = Object.keys(SFX_FILES).filter(key => !sfxBuffers[key]);
+      if (!keys.length) return Promise.resolve();
+
+      sfxLoading = Promise.all(keys.map(key => {
+        return window.fetch(SFX_FILES[key])
+          .then(response => {
+            if (!response.ok) throw new Error('SFX load failed');
+            return response.arrayBuffer();
+          })
+          .then(buffer => decodeAudio(buffer))
+          .then(buffer => {
+            if (buffer) sfxBuffers[key] = trimAndNormalize(buffer);
+          })
+          .catch(() => {});
+      })).then(() => { sfxLoading = null; });
+      return sfxLoading;
+    }
+
+    function playSample(kind, pan) {
+      if (!ctx || !sfx || !sfxBuffers) return false;
+      const settings = SAMPLE_SETTINGS[kind];
+      if (!settings) return false;
+      const buffer = sfxBuffers[settings.file || kind];
+      if (!buffer) return false;
+
+      const t = ctx.currentTime + 0.003;
+      const source = ctx.createBufferSource();
+      const gain = ctx.createGain();
+      const rate = settings.rate * (0.985 + Math.random() * 0.03);
+      const maxDuration = Math.min(settings.max || buffer.duration, buffer.duration / rate);
+
+      source.buffer = buffer;
+      source.playbackRate.setValueAtTime(rate, t);
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(settings.volume, t + 0.004);
+      gain.gain.setValueAtTime(settings.volume, t + Math.max(0.01, maxDuration - 0.03));
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + maxDuration);
+      source.connect(gain);
+      connectSfx(gain, pan, t);
+      source.start(t);
+      source.stop(t + maxDuration);
+      track(source);
+      return true;
+    }
+
     function playUi(kind, pan) {
       if (!ctx || !sfx) return;
       const t = ctx.currentTime + 0.004;
@@ -465,6 +598,10 @@
       }
     }
 
+    function playUiEntry(kind, pan) {
+      if (!playSample(kind, pan)) playUi(kind, pan);
+    }
+
     function ui(kind, pan) {
       if (!enabled) return;
       init();
@@ -474,13 +611,13 @@
           const resuming = ctx.resume();
           if (resuming && resuming.then) {
             resuming.then(() => {
-              if (enabled) playUi(kind, pan);
+              if (enabled) playUiEntry(kind, pan);
             }).catch(() => {});
           }
         }
         return;
       }
-      playUi(kind, pan);
+      playUiEntry(kind, pan);
     }
 
     return {
@@ -3098,7 +3235,7 @@
           return;
         }
         const now = performance.now();
-        if (now - lastHoverAt < 55) return;
+        if (now - lastHoverAt < 90) return;
         lastHoverAt = now;
         lastHoverTarget = target;
         Sound.ui('hover', panFor(event));
