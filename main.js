@@ -33,6 +33,7 @@
     let master = null;
     let bus = null;
     let sfx = null;
+    let sfxOut = null;
     let sfxBuffers = null;
     let sfxLoading = null;
     let musicTimer = null;
@@ -143,10 +144,14 @@
       reverb.connect(wet);
       wet.connect(master);
 
-      // Crisp little interface layer, kept mostly dry with a short reverb send.
+      // Crisp interface layer: bypass the music fade and low-pass so UI samples
+      // stay bright and audible even during the first music swell.
+      sfxOut = ctx.createGain();
+      sfxOut.gain.value = 0.5;
+      sfxOut.connect(ctx.destination);
       sfx = ctx.createGain();
       sfx.gain.value = 0.9;
-      sfx.connect(master);
+      sfx.connect(sfxOut);
       const sfxSend = ctx.createGain();
       sfxSend.gain.value = 0.05;
       sfx.connect(sfxSend);
