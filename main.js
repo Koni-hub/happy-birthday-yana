@@ -58,28 +58,23 @@
     const STORAGE_KEY = 'yana-music-enabled';
     const LEGACY_STORAGE_KEY = 'yana-sound-enabled';
     const ENTRY_KEY = 'yana-music-entry';
-    // A soft, magical little palette: fairy sparkle for taps, a warm
-    // fairy-dust chime for reveals, paper for the photo cards, and a real
-    // kiss for the letter. Samples by humordome, Emand_Edroff, OxidVideos,
-    // freesound_community and kai_audio; all free under the Pixabay Content
-    // License.
+    // UI samples by SoundShelfStudio and the candle blow by kai_audio,
+    // free for use under the Pixabay Content License.
     const SFX_FILES = {
-      tap: 'assets/sfx/fairy-sparkle.mp3',
-      open: 'assets/sfx/magic-chime.mp3',
-      swipe: 'assets/sfx/paper-slide.mp3',
-      sparkle: 'assets/sfx/fairy-sparkle.mp3',
-      kiss: 'assets/sfx/kiss.mp3',
+      tap: 'assets/sfx/ui-click.mp3',
+      hover: 'assets/sfx/ui-hover.mp3',
+      open: 'assets/sfx/ui-open.mp3',
+      close: 'assets/sfx/ui-close.mp3',
+      swipe: 'assets/sfx/ui-swipe.mp3',
       candle: 'assets/sfx/candle-blow.mp3'
     };
     const SAMPLE_SETTINGS = {
-      tap: { volume: 0.17, rate: 1.22, max: 0.5 },
-      toggle: { file: 'open', volume: 0.14, rate: 1.22, max: 0.5 },
-      hover: { file: 'tap', volume: 0.06, rate: 1.46, max: 0.18 },
-      open: { volume: 0.14, rate: 1, max: 1.15 },
-      close: { file: 'swipe', volume: 0.12, rate: 0.94, max: 0.52 },
-      swipe: { volume: 0.15, rate: 1.06, max: 0.52 },
-      sparkle: { volume: 0.16, rate: 1, max: 1.7 },
-      kiss: { volume: 0.18, rate: 1, max: 1.6 },
+      tap: { volume: 0.3, rate: 1, max: 0.9 },
+      toggle: { file: 'tap', volume: 0.2, rate: 1.18, max: 0.45 },
+      hover: { volume: 0.13, rate: 1.04, max: 0.32 },
+      open: { volume: 0.075, rate: 1, max: 1.25 },
+      close: { volume: 0.07, rate: 1, max: 1 },
+      swipe: { volume: 0.11, rate: 1, max: 1 },
       candle: { volume: 0.34, rate: 1, max: 1.9 }
     };
     const musicActive = [];
@@ -443,17 +438,10 @@
 
     function celebration() {
       withSfx(() => {
-        if (playSample('sparkle', 0)) return;
         const now = ctx.currentTime;
         [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
           sfxTone({ when: now + i * 0.11, duration: 1.7, frequency: f, volume: 0.06, type: 'sine', pan: 0 });
         });
-      });
-    }
-
-    function kiss(pan) {
-      withSfx(() => {
-        if (!playSample('kiss', pan)) playUi('tap', pan);
       });
     }
 
@@ -731,7 +719,6 @@
       chime,
       celebration,
       blow,
-      kiss,
       ui,
       isMusicEnabled: () => musicEnabled
     };
@@ -3246,7 +3233,7 @@
       modal.setAttribute('aria-hidden', 'false');
       document.body.classList.add('is-locked');
       closeButton.focus();
-      Sound.ui('open', -0.1);
+      Sound.chime(659.25, 0.05);
     }
 
     function closeNote() {
@@ -3254,7 +3241,6 @@
       modal.setAttribute('aria-hidden', 'true');
       document.body.classList.remove('is-locked');
       if (lastFocused && lastFocused.focus) lastFocused.focus();
-      Sound.ui('close', -0.1);
     }
 
     openButton.addEventListener('click', openNote);
@@ -3376,7 +3362,7 @@
     const heart = $('.letter-heart');
     if (!button) return;
     button.addEventListener('click', () => {
-      Sound.kiss();
+      Sound.chime(784, 0.06);
       if (app.confetti) app.confetti.burst(90, true);
       showToast('💋 caught it. Right back at you, birthday girl.', 3200);
       if (heart) {
