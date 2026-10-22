@@ -2111,6 +2111,19 @@ body.is-leaving .site-header { opacity: 0; transition: opacity 0.35s ease; }
   .polaroid-caption { font-size: 14px; }
 }
 
+/* Low-power fallback: frosted overlays and full-hero blurs are expensive over
+   a live WebGL canvas, so keep the solid backgrounds and drop the blur work. */
+html.is-low-power * {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+html.is-low-power body.is-leaving .hero { filter: none; }
+html.is-low-power .letter-heart { filter: none; }
+html.is-low-power .loader-orb {
+  animation: none;
+  box-shadow: 0 0 38px rgba(239, 156, 175, 0.14), inset 0 0 24px rgba(228, 192, 138, 0.05);
+}
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after {

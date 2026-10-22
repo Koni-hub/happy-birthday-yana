@@ -14,6 +14,20 @@
   const rand = (min, max) => min + Math.random() * (max - min);
   const app = { girls: null, cake: null, confetti: null };
 
+  // Keep phones, tablets and older laptops smooth. The scenes are atmospheric,
+  // so a slightly lower internal resolution reads better than dropped frames.
+  const lowPower = (() => {
+    const coarse = window.matchMedia
+      ? window.matchMedia('(pointer: coarse) and (max-width: 900px)').matches
+      : false;
+    const cores = navigator.hardwareConcurrency || 8;
+    const memory = navigator.deviceMemory || 8;
+    return coarse || cores <= 4 || memory <= 4;
+  })();
+  const maxPixelRatio = lowPower ? 1 : 1.5;
+  const shadowMapSize = lowPower ? 512 : 1024;
+  if (lowPower) document.documentElement.classList.add('is-low-power');
+
   if (!THREE) {
     console.error('Three.js did not load.');
     document.body.classList.add('is-ready', 'has-no-3d');
@@ -36,6 +50,7 @@
     let sfxOut = null;
     let sfxBuffers = null;
     let sfxLoading = null;
+    let sfxIdleHandle = 0;
     let musicTimer = null;
     let loopActive = false;
     let musicStarted = false;
@@ -149,7 +164,7 @@
       dry.connect(master);
 
       const reverb = ctx.createConvolver();
-      reverb.buffer = makeImpulse(4.2, 2.6);
+      reverb.buffer = makeImpulse(3, 2.4);
       const wet = ctx.createGain();
       wet.gain.value = 0.9;
       bus.connect(reverb);
@@ -169,7 +184,20 @@
       sfx.connect(sfxSend);
       sfxSend.connect(reverb);
 
-      loadSfx();
+      scheduleSfxLoad();
+    }
+
+    function scheduleSfxLoad() {
+      if (sfxLoading || sfxIdleHandle) return;
+      const run = () => {
+        sfxIdleHandle = 0;
+        loadSfx();
+      };
+      if (typeof window.requestIdleCallback === 'function') {
+        sfxIdleHandle = window.requestIdleCallback(run, { timeout: 1600 });
+      } else {
+        sfxIdleHandle = window.setTimeout(run, 350);
+      }
     }
 
     function track(source, list) {
@@ -383,6 +411,7 @@
       if (!sfxEnabled) return;
       init();
       if (!ctx) return;
+      loadSfx();
       if (ctx.state === 'running') {
         play();
         return;
@@ -510,9 +539,11 @@
       });
     }
 
-    function trimAndNormalize(buffer) {
+    function trimAndNormalize(buffer, maxSeconds) {
       const channels = buffer.numberOfChannels;
-      const length = buffer.length;
+      const length = maxSeconds
+        ? Math.min(buffer.length, Math.ceil(buffer.sampleRate * maxSeconds))
+        : buffer.length;
       let peak = 0;
       for (let channel = 0; channel < channels; channel++) {
         const data = buffer.getChannelData(channel);
@@ -574,7 +605,9 @@
       const keys = Object.keys(SFX_FILES).filter(key => !sfxBuffers[key]);
       if (!keys.length) return Promise.resolve();
 
-      sfxLoading = Promise.all(keys.map(key => {
+      const loadOne = key => {
+        const settings = SAMPLE_SETTINGS[key];
+        const limit = settings && settings.max ? settings.max + 0.35 : 0;
         return window.fetch(SFX_FILES[key])
           .then(response => {
             if (!response.ok) throw new Error('SFX load failed');
@@ -582,10 +615,17 @@
           })
           .then(buffer => decodeAudio(buffer))
           .then(buffer => {
-            if (buffer) sfxBuffers[key] = trimAndNormalize(buffer);
+            if (buffer) sfxBuffers[key] = trimAndNormalize(buffer, limit);
           })
           .catch(() => {});
-      })).then(() => { sfxLoading = null; });
+      };
+
+      // Small interface samples first; the long candle breath loads last.
+      const quick = keys.filter(key => key !== 'candle');
+      const slow = keys.filter(key => key === 'candle');
+      sfxLoading = Promise.all(quick.map(loadOne))
+        .then(() => Promise.all(slow.map(loadOne)))
+        .then(() => { sfxLoading = null; });
       return sfxLoading;
     }
 
@@ -701,14 +741,14 @@
     }
 
     resize() {
-      const ratio = Math.min(window.devicePixelRatio || 1, 2);
+      const ratio = Math.min(window.devicePixelRatio || 1, lowPower ? 1 : 2);
       this.canvas.width = window.innerWidth * ratio;
       this.canvas.height = window.innerHeight * ratio;
       this.ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
     }
 
     burst(amount, fromCenter) {
-      const count = amount || 140;
+      const count = Math.round((amount || 140) * (lowPower ? 0.6 : 1));
       const w = window.innerWidth;
       const h = window.innerHeight;
       for (let i = 0; i < count; i++) {
@@ -928,12 +968,12 @@
       antialias: true,
       powerPreference: 'high-performance'
     });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, maxPixelRatio));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.08;
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.type = lowPower ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
     return renderer;
   }
 
@@ -1898,7 +1938,7 @@
     const key = new THREE.DirectionalLight(0xffe3cd, 3.2);
     key.position.set(3.5, 6.5, 5.5);
     key.castShadow = true;
-    key.shadow.mapSize.set(1024, 1024);
+    key.shadow.mapSize.set(shadowMapSize, shadowMapSize);
     key.shadow.camera.left = -5;
     key.shadow.camera.right = 5;
     key.shadow.camera.top = 6;
@@ -2288,7 +2328,7 @@
     const key = new THREE.DirectionalLight(0xffe0c4, 3.4);
     key.position.set(3.8, 6.5, 4.5);
     key.castShadow = true;
-    key.shadow.mapSize.set(1024, 1024);
+    key.shadow.mapSize.set(shadowMapSize, shadowMapSize);
     key.shadow.camera.left = -4;
     key.shadow.camera.right = 4;
     key.shadow.camera.top = 5;
@@ -2522,7 +2562,9 @@
       flameGroup.add(glow);
       const light = new THREE.PointLight(0xffa05b, 2.5, 3, 2);
       light.position.y = 0.03;
-      flameGroup.add(light);
+      // Five extra point lights are costly on phones; the emissive flames still
+      // read as five candles while three shared glows keep the cake warm.
+      if (!lowPower || i < 3) flameGroup.add(light);
       group.add(flameGroup);
 
       cakeRoot.add(group);
