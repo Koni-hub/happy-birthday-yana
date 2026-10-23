@@ -3655,7 +3655,7 @@
   async function boot() {
     const Loader = window.YanaLoader;
 
-    if (Loader) Loader.setStatus('warming up her little world');
+    if (Loader) Loader.setStatus('gathering little bits of sunshine');
     await afterPaint();
     // Audio graph + sample decode start now instead of on the first hover.
     Sound.warm();
@@ -3701,7 +3701,7 @@
         await Promise.race([referencePhoto.decode().catch(() => {}), wait(500)]);
       }
 
-      if (Loader) Loader.setStatus('Something special is coming, my love...');
+      if (Loader) Loader.setStatus('something special is coming, my love...');
       await whenWindowLoaded(1500);
       // Render under the loader first: the expensive first frames and any
       // quality downgrade must never be the ones the user actually sees.
