@@ -3701,7 +3701,7 @@
         await Promise.race([referencePhoto.decode().catch(() => {}), wait(500)]);
       }
 
-      if (Loader) Loader.setStatus('Something special is coming, my love 💕...');
+      if (Loader) Loader.setStatus('Something special is coming, my love...');
       await whenWindowLoaded(1500);
       // Render under the loader first: the expensive first frames and any
       // quality downgrade must never be the ones the user actually sees.
