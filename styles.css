@@ -1857,10 +1857,13 @@ body.is-ready .hero .title-name > span {
   transition: opacity 0.85s var(--ease), visibility 0.85s;
 }
 body.is-leaving .page-transition { opacity: 1; visibility: visible; }
+/* No filter here: blurring the hero re-blurs the live WebGL canvas on every
+   frame of the transition, which is exactly the click hitch. The overlay
+   below is opaque anyway, so only the fade is visible. */
 body.is-leaving .hero {
   opacity: 0.12;
-  filter: blur(9px) scale(1.015);
-  transition: opacity 0.8s ease, filter 0.8s ease;
+  transform: scale(1.015);
+  transition: opacity 0.8s ease, transform 0.8s ease;
 }
 body.is-leaving .site-header { opacity: 0; transition: opacity 0.35s ease; }
 .transition-orb {

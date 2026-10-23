@@ -24,8 +24,13 @@
     const memory = navigator.deviceMemory || 8;
     return coarse || cores <= 4 || memory <= 4;
   })();
-  const maxPixelRatio = lowPower ? 0.9 : 1.25;
+  // Render at most one pixel per CSS pixel: on a retina display 1.25x meant
+  // ~1.6x the pixels for a difference nobody sees on a soft, atmospheric
+  // scene — it was pure GPU cost. Phones drop below 1 and upscale.
+  const maxPixelRatio = lowPower ? 0.8 : 1;
   const shadowMapSize = lowPower ? 512 : 1024;
+  // Live cap, so the adaptive lite mode keeps holding after a resize.
+  let pixelCap = maxPixelRatio;
   let reducedEffects = lowPower;
   if (lowPower) document.documentElement.classList.add('is-low-power');
 
@@ -979,11 +984,14 @@
     return target.texture;
   }
 
-  function makeRenderer(canvas) {
+  function makeRenderer(canvas, stage) {
+    // On very large stages the canvas is downscaled by the pixel budget, and
+    // MSAA on 8MP of surface is the most expensive line in the whole frame.
+    const stagePixels = stage ? stage.clientWidth * stage.clientHeight : 0;
     const renderer = new THREE.WebGLRenderer({
       canvas: canvas,
       alpha: true,
-      antialias: !lowPower,
+      antialias: !lowPower && stagePixels <= PIXEL_BUDGET,
       precision: lowPower ? 'mediump' : 'highp',
       powerPreference: 'high-performance'
     });
@@ -992,7 +1000,11 @@
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.08;
     renderer.shadowMap.enabled = !lowPower;
-    renderer.shadowMap.type = lowPower ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
+    // PCF (not PCFSoft): soft shadows sample 16 taps per lit fragment across
+    // the whole canvas; PCF's 4 taps look identical at this scale.
+    renderer.shadowMap.type = THREE.PCFShadowMap;
+    // The scenes refresh needsUpdate on their own schedule (see render()).
+    renderer.shadowMap.autoUpdate = false;
     return renderer;
   }
 
@@ -1001,6 +1013,16 @@
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
+  }
+
+  // Fill-rate budget in device pixels. On a 4K display the stage is the whole
+  // screen, so the old "1 pixel per CSS pixel" rule meant rendering 8MP per
+  // frame for a subject only a few hundred pixels tall.
+  const PIXEL_BUDGET = 2100000;
+
+  function qualityRatio(width, height) {
+    const budgeted = Math.sqrt(PIXEL_BUDGET / (width * height));
+    return clamp(Math.min(pixelCap, budgeted), 0.6, pixelCap);
   }
 
   function capsuleBetween(a, b, radius, material) {
@@ -1914,11 +1936,15 @@
     root.position.set(config.x, 0, config.z);
     root.rotation.y = -config.x * 0.105;
 
+    /* Only silhouette-sized parts cast shadows. The face details, jewellery
+       and hair wisps used to re-render into the shadow map every frame for
+       shadows nobody could see — most of the shadow pass for nothing. */
     figure.traverse(obj => {
-      if (obj.isMesh) {
-        obj.castShadow = true;
-        obj.receiveShadow = true;
-      }
+      if (!obj.isMesh) return;
+      obj.receiveShadow = true;
+      const geometry = obj.geometry;
+      if (geometry && !geometry.boundingSphere) geometry.computeBoundingSphere();
+      obj.castShadow = !!(geometry && geometry.boundingSphere && geometry.boundingSphere.radius >= 0.12);
     });
 
     return {
@@ -1981,7 +2007,7 @@
     const stage = $('#girls-stage');
     if (!canvas || !stage) return null;
 
-    const renderer = makeRenderer(canvas);
+    const renderer = makeRenderer(canvas, stage);
     const scene = new THREE.Scene();
     scene.environment = createEnvironment(renderer);
     scene.environmentIntensity = 0.84;
@@ -2017,6 +2043,10 @@
     const warmFill = new THREE.PointLight(0xffc39f, 18, 9, 2);
     warmFill.position.set(0.5, 2.5, 3.8);
     scene.add(warmFill);
+
+    // Optional lights: they are the first thing dropped when the scene is
+    // already struggling, since every light widens the per-fragment loop.
+    scene.userData.perfLights = lowPower ? [] : [cool, warmFill];
 
     /* floor and celestial architecture */
     const floorMaterial = physical(0x0f0915, {
@@ -2248,6 +2278,7 @@
       const width = stage.clientWidth;
       const height = stage.clientHeight;
       if (!width || !height) return;
+      renderer.setPixelRatio(qualityRatio(width, height));
       resizeRenderer(renderer, camera, width, height);
       updateCamera(0, true);
     }
@@ -2317,7 +2348,14 @@
       floorRing2.rotation.z = -t * 0.008;
     }
 
+    let shadowFrame = 0;
     function render() {
+      // The shadow map only depends on the lights and casters, never on the
+      // camera, so refreshing it every third frame costs a third of the pass
+      // and is invisible at this animation speed.
+      if (renderer.shadowMap.enabled && shadowFrame++ % 3 === 0) {
+        renderer.shadowMap.needsUpdate = true;
+      }
       renderer.render(scene, camera);
     }
 
@@ -2346,6 +2384,7 @@
       clear: clearSelection,
       update,
       render,
+      resize,
       isVisible: () => state.visible
     };
   }
@@ -2391,7 +2430,7 @@
     const stage = $('#wish-stage');
     if (!canvas || !stage) return null;
 
-    const renderer = makeRenderer(canvas);
+    const renderer = makeRenderer(canvas, stage);
     const scene = new THREE.Scene();
     scene.environment = createEnvironment(renderer);
     scene.environmentIntensity = 0.86;
@@ -2867,6 +2906,7 @@
       const width = stage.clientWidth;
       const height = stage.clientHeight;
       if (!width || !height) return;
+      renderer.setPixelRatio(qualityRatio(width, height));
       resizeRenderer(renderer, camera, width, height);
       updateCamera(0, true);
     }
@@ -2953,7 +2993,14 @@
       }
     }
 
+    let shadowFrame = 0;
     function render() {
+      // The shadow map only depends on the lights and casters, never on the
+      // camera, so refreshing it every third frame costs a third of the pass
+      // and is invisible at this animation speed.
+      if (renderer.shadowMap.enabled && shadowFrame++ % 3 === 0) {
+        renderer.shadowMap.needsUpdate = true;
+      }
       renderer.render(scene, camera);
     }
 
@@ -2981,6 +3028,7 @@
       relight,
       update,
       render,
+      resize,
       isVisible: () => state.visible
     };
   }
@@ -3483,11 +3531,19 @@
       lite = true;
       reducedEffects = true;
       frameCap = 1000 / 30;
+      pixelCap = 0.75;
       document.documentElement.classList.add('is-low-power');
       [app.girls, app.cake].forEach(scene => {
         if (!scene || !scene.renderer) return;
-        scene.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 0.75));
+        if (scene.resize) scene.resize();
+        else scene.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 0.75));
         scene.renderer.shadowMap.enabled = false;
+        const scene3d = scene.scene;
+        const extras = scene3d && scene3d.userData.perfLights;
+        if (extras) {
+          extras.forEach(light => scene3d.remove(light));
+          scene3d.userData.perfLights = null;
+        }
       });
       if (app.confetti) app.confetti.resize();
     }
@@ -3503,7 +3559,9 @@
       last = now;
       const time = now / 1000;
 
-      if (!document.hidden) {
+      // Once the transition starts, the final frame stays on the canvas, so
+      // keep rendering off: it freed the GPU right when the page animates.
+      if (!document.hidden && !leavingPage) {
         let active = false;
         if (app.girls && app.girls.isVisible()) {
           active = true;
