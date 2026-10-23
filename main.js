@@ -728,6 +728,12 @@
       celebration,
       blow,
       ui,
+      // Build the audio graph and decode the UI samples while the loader is
+      // still up, so the first hover does not pay for it in one hitch.
+      warm: () => {
+        init();
+        if (ctx) loadSfx();
+      },
       isMusicEnabled: () => musicEnabled
     };
   })();
@@ -3517,7 +3523,14 @@
     }
   }
 
+  let renderLoopStarted = false;
+  // Flips on the first quality decision so boot can wait for it while the
+  // loader still covers the screen.
+  let qualitySettled = false;
+
   function startRenderLoop() {
+    if (renderLoopStarted) return;
+    renderLoopStarted = true;
     let last = performance.now();
     let frameCap = 0;
     let lite = false;
@@ -3582,9 +3595,10 @@
           // cannot force the low-power mode on by itself.
           sampleTotal += Math.min(raw, 100);
           // Decide on elapsed time too, so a scene that is already struggling
-          // drops quality within a second instead of after 50 frames.
-          if (sampleFrames >= 24 || now - windowStart >= 900) {
+          // downgrades within a second instead of after 50 frames.
+          if (sampleFrames >= 24 || now - windowStart >= 600) {
             if (sampleTotal / sampleFrames > 24) enableLite();
+            qualitySettled = true;
             sampleFrames = 0;
             sampleTotal = 0;
             windowStart = 0;
@@ -3602,9 +3616,29 @@
     window.requestAnimationFrame(loop);
   }
 
+  // Run the real loop while the loader still covers the page. Shader program
+  // compiles, the first shadow map, the framebuffer allocation and any quality
+  // downgrade all cost frames — doing them here means the first *visible*
+  // frames are already steady instead of stuttering for a second or two.
+  function warmRenderLoop() {
+    if (!app.girls && !app.cake) return Promise.resolve();
+    startRenderLoop();
+    const frame = () => Promise.race([
+      // A background tab pauses rAF, so the timer has to win there.
+      new Promise(resolve => window.requestAnimationFrame(resolve)),
+      wait(120)
+    ]);
+    return (async () => {
+      const deadline = performance.now() + 1800;
+      while (!qualitySettled && performance.now() < deadline) await frame();
+      // Let a recompile from the downgrade finish out of sight too.
+      for (let i = 0; i < 8; i++) await frame();
+    })();
+  }
+
   // Let the loader paint before the heavier 3D work starts. A timer backs up
   // requestAnimationFrame, which is paused entirely in a background tab — that
-  // used to leave the loader spinning until the 25s hard stop.
+  // used to leave the loader spinning until the hard stop.
   function afterPaint() {
     return new Promise(resolve => {
       let settled = false;
@@ -3623,6 +3657,8 @@
 
     if (Loader) Loader.setStatus('warming up her little world');
     await afterPaint();
+    // Audio graph + sample decode start now instead of on the first hover.
+    Sound.warm();
 
     if (document.fonts && document.fonts.ready) {
       await Promise.race([
@@ -3667,6 +3703,9 @@
 
       if (Loader) Loader.setStatus('one last ribbon');
       await whenWindowLoaded(1500);
+      // Render under the loader first: the expensive first frames and any
+      // quality downgrade must never be the ones the user actually sees.
+      await warmRenderLoop();
       celebrateLoader();
     } catch (error) {
       console.error('The birthday page had trouble starting:', error);
