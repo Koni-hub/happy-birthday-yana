@@ -3169,7 +3169,7 @@
         marker.classList.toggle('is-active', index === flow.step && !flow.done);
       });
       if (hint) {
-        hint.textContent = flow.done
+        hint.textContent = (flow.done || flow.step >= GIFT_STEPS.length)
           ? 'her birthday is ready ✦'
           : GIFT_STEPS[flow.step].hint;
       }
