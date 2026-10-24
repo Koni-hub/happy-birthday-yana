@@ -4,11 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#120b19" />
-  <meta name="description" content="A little three-dimensional birthday surprise for Yana. Tap anywhere to begin." />
+  <meta name="description" content="A little three-dimensional birthday surprise for Yana. Open three gifts, light her candle, and step inside." />
   <title>Happy Birthday, Yana ✦</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%82%3C/text%3E%3C/svg%3E" />
   <link rel="preload" href="vendor/three.global.js" as="script" />
-  <link rel="stylesheet" href="styles.css?v=25" />
+  <link rel="stylesheet" href="styles.css?v=26" />
 </head>
 <body class="landing-page">
   <noscript><div class="noscript">This little birthday world needs JavaScript to come alive. Please enable it and refresh. ♥</div></noscript>
@@ -43,13 +43,17 @@
           <span class="title-line"><em>Birthday,</em></span>
           <span class="title-line title-name"><span>Yana</span></span>
         </h1>
-        <p class="lede reveal">Your birthday girl is waiting with a little pink cake and a whole sky of wishes. Tap anywhere to begin.</p>
-        <p class="hero-note reveal"><span>✦</span> Tap anywhere to begin · drag her little world to orbit</p>
+        <p class="lede reveal">Her birthday world isn't ready yet. Three little gifts are waiting — open them, and light the candle on her cake. Tap the glowing gift to begin.</p>
+        <p class="hero-note reveal"><span>✦</span> Tap the glowing gift · drag her world to orbit</p>
+        <button class="btn btn-primary landing-cta" id="landing-cta" type="button" hidden>
+          <span>Step into her birthday</span>
+          <span aria-hidden="true">✦</span>
+        </button>
       </div>
 
       <div class="hero-visual" id="girls-stage">
         <div class="stage-aura" aria-hidden="true"></div>
-        <canvas id="girls-canvas" tabindex="0" role="button" aria-label="An interactive 3D birthday girl with a fluffy cream hat, dark hair and a black deep-V outfit, holding a pink birthday cake. Tap or press Enter to open your surprise."></canvas>
+        <canvas id="girls-canvas" tabindex="0" role="button" aria-label="An interactive 3D birthday girl with a fluffy cream hat, dark hair and a black deep-V outfit, holding a pink birthday cake with an unlit candle. Set up her birthday by opening the three gifts around her."></canvas>
         <div class="stage-caption" aria-hidden="true">
           <span>one birthday girl</span>
           <i></i>
@@ -62,7 +66,38 @@
           <img src="assets/yana-wifey.jpg" alt="Reference photo of Yana in a fluffy white hat and dark top" loading="eager" />
           <span class="reference-caption">the real Yana</span>
         </button>
-        <div class="stage-hint" aria-hidden="true"><span class="drag-icon">✦</span> tap anywhere to begin</div>
+        <div class="stage-hint" aria-hidden="true"><span class="drag-icon">✦</span> tap the glowing gift</div>
+      </div>
+
+      <div class="landing-layer" id="landing-layer">
+        <div class="gift-markers" id="gift-markers">
+          <button class="gift-marker" type="button" data-gift="0" tabindex="0">
+            <span class="gift-marker-ring" aria-hidden="true"></span>
+            <span class="gift-marker-num" aria-hidden="true">01</span>
+            <span class="gift-marker-label" aria-hidden="true">the balloons</span>
+          </button>
+          <button class="gift-marker" type="button" data-gift="1" tabindex="0">
+            <span class="gift-marker-ring" aria-hidden="true"></span>
+            <span class="gift-marker-num" aria-hidden="true">02</span>
+            <span class="gift-marker-label" aria-hidden="true">the petals</span>
+          </button>
+          <button class="gift-marker" type="button" data-gift="2" tabindex="0">
+            <span class="gift-marker-ring" aria-hidden="true"></span>
+            <span class="gift-marker-num" aria-hidden="true">03</span>
+            <span class="gift-marker-label" aria-hidden="true">her candle</span>
+          </button>
+        </div>
+
+        <div class="setup-guide" id="setup-guide" aria-live="polite">
+          <p class="setup-guide-kicker">✦ setting up her birthday</p>
+          <ol class="setup-steps">
+            <li class="setup-step is-active" data-step="0"><i>01</i><span>the balloons</span></li>
+            <li class="setup-step" data-step="1"><i>02</i><span>the petals</span></li>
+            <li class="setup-step" data-step="2"><i>03</i><span>her candle</span></li>
+          </ol>
+          <p class="setup-guide-hint" id="setup-guide-hint">tap the glowing gift on the left</p>
+          <button class="setup-skip" id="landing-skip" type="button" hidden>skip the setup →</button>
+        </div>
       </div>
 
       <div class="scroll-cue landing-cue" aria-hidden="true">
@@ -85,6 +120,7 @@
     <p>opening your birthday surprise</p>
   </div>
 
+  <canvas class="confetti-canvas" id="confetti-canvas" aria-hidden="true"></canvas>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script>
@@ -123,6 +159,6 @@
     })();
   </script>
   <script src="vendor/three.global.js" defer></script>
-  <script src="main.js?v=25" defer></script>
+  <script src="main.js?v=26" defer></script>
 </body>
 </html>

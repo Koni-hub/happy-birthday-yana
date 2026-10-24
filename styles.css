@@ -2213,6 +2213,238 @@ body.is-ready .hero .title-name > span {
 }
 .final-note span { color: rgba(228, 192, 138, 0.55); }
 
+/* ——— landing gate · she sets up her birthday ——— */
+.landing-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 120;
+  pointer-events: none;
+}
+.gift-markers { position: absolute; inset: 0; }
+.gift-marker {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  padding: 0;
+  transform: translate(-50%, -50%);
+  border: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(24, 13, 30, 0.55), rgba(24, 13, 30, 0) 72%);
+  color: var(--ink);
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.4s var(--ease), visibility 0.4s;
+  -webkit-tap-highlight-color: transparent;
+}
+.gift-marker.is-active { opacity: 1; visibility: visible; pointer-events: auto; }
+.gift-marker-ring {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(228, 192, 138, 0.6);
+  border-radius: 50%;
+  box-shadow: 0 0 26px rgba(239, 156, 175, 0.3), inset 0 0 22px rgba(228, 192, 138, 0.1);
+  animation: giftPulse 2.2s ease-in-out infinite;
+}
+.gift-marker-ring::before {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  border: 1px dashed rgba(239, 196, 196, 0.24);
+  border-radius: 50%;
+}
+.gift-marker-num {
+  position: relative;
+  font-family: var(--display);
+  font-size: 19px;
+  font-weight: 500;
+  color: #fff4e9;
+  text-shadow: 0 0 18px rgba(255, 196, 180, 0.55);
+}
+.gift-marker-label {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  padding: 4px 9px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(239, 194, 202, 0.18);
+  border-radius: 999px;
+  background: rgba(17, 10, 23, 0.72);
+  color: rgba(251, 238, 231, 0.62);
+  font-size: 6.5px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.gift-marker:hover .gift-marker-ring,
+.gift-marker:focus-visible .gift-marker-ring { border-color: rgba(239, 156, 175, 0.85); }
+.gift-marker:focus-visible { outline: 2px solid var(--rose-bright); outline-offset: 6px; }
+@keyframes giftPulse {
+  0%, 100% { transform: scale(1); opacity: 0.72; }
+  50% { transform: scale(1.09); opacity: 1; }
+}
+
+.setup-guide {
+  position: absolute;
+  right: clamp(18px, 4vw, 54px);
+  bottom: clamp(58px, 10vh, 104px);
+  width: min(232px, 44vw);
+  padding: 14px 16px 13px;
+  border: 1px solid rgba(228, 192, 138, 0.2);
+  border-radius: 16px;
+  background: rgba(17, 10, 23, 0.72);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.34);
+  pointer-events: none;
+  transition: border-color 0.5s ease, box-shadow 0.5s ease;
+}
+.setup-guide.is-nudged { animation: guideNudge 0.55s var(--ease); }
+@keyframes guideNudge {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  55% { transform: translateX(5px); }
+  80% { transform: translateX(-3px); }
+}
+.setup-guide-kicker {
+  margin: 0 0 10px;
+  color: rgba(228, 192, 138, 0.75);
+  font-size: 6.5px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+.setup-steps {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.setup-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(251, 238, 231, 0.36);
+  font-size: 7px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  transition: color 0.35s ease;
+}
+.setup-step i {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 50%;
+  color: rgba(251, 238, 231, 0.5);
+  font-size: 6.5px;
+  font-style: normal;
+  transition: border-color 0.35s ease, color 0.35s ease, background 0.35s ease, box-shadow 0.35s ease;
+}
+.setup-step.is-active { color: rgba(255, 246, 238, 0.92); }
+.setup-step.is-active i {
+  border-color: rgba(239, 156, 175, 0.65);
+  color: #ffe7e2;
+  box-shadow: 0 0 16px rgba(239, 156, 175, 0.28);
+}
+.setup-step.is-done { color: rgba(228, 192, 138, 0.62); }
+.setup-step.is-done i {
+  border-color: rgba(228, 192, 138, 0.4);
+  background: rgba(228, 192, 138, 0.86);
+  color: #1a1020;
+}
+.setup-step.is-done i::after { content: '✓'; font-size: 8px; }
+.setup-step.is-done i { font-size: 0; }
+.setup-guide-hint {
+  margin: 11px 0 0;
+  color: rgba(251, 238, 231, 0.5);
+  font-size: 7px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  line-height: 1.7;
+  text-transform: uppercase;
+}
+.setup-guide.is-complete {
+  border-color: rgba(228, 192, 138, 0.42);
+  box-shadow: 0 0 46px rgba(239, 156, 175, 0.18), 0 18px 50px rgba(0, 0, 0, 0.34);
+}
+.setup-skip {
+  margin-top: 10px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: rgba(251, 238, 231, 0.4);
+  font-size: 6.5px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: color 0.3s ease;
+}
+.setup-skip:hover { color: var(--rose-bright); }
+
+.landing-cta {
+  margin-top: 1.6rem;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.5s var(--ease), transform 0.5s var(--ease);
+}
+.landing-cta.is-in { opacity: 1; transform: none; }
+.landing-cta[hidden] { display: none; }
+
+body.is-birthday-ready .stage-aura {
+  border-color: rgba(255, 196, 150, 0.24);
+  box-shadow: 0 0 0 7vw rgba(255, 170, 120, 0.05), 0 0 100px rgba(255, 160, 120, 0.22);
+  transition: border-color 1.2s ease, box-shadow 1.2s ease;
+}
+body.is-birthday-ready .hero-visual::before {
+  background: radial-gradient(circle, rgba(255, 178, 138, 0.18), rgba(105, 71, 133, 0.06) 42%, transparent 70%);
+}
+
+@media (max-width: 1000px) {
+  .setup-guide {
+    right: 16px;
+    bottom: 88px;
+    width: min(212px, 40vw);
+  }
+}
+
+@media (max-width: 760px) {
+  .setup-guide {
+    left: 14px;
+    right: auto;
+    top: 84px;
+    bottom: auto;
+    width: min(226px, 56vw);
+    padding: 11px 13px 10px;
+  }
+  .setup-steps { gap: 5px; }
+  .setup-step { font-size: 6.5px; }
+  .setup-guide-hint { margin-top: 9px; font-size: 6.5px; }
+  .gift-marker { width: 62px; height: 62px; }
+  .gift-marker-num { font-size: 16px; }
+  .gift-marker-label { padding: 3px 7px; font-size: 6px; }
+  .landing-cta { margin-top: 1.1rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gift-marker-ring,
+  .setup-guide.is-nudged { animation: none; }
+  .landing-cta { transform: none; }
+}
+
 /* ——— landing page transition ——— */
 .landing-page .sound-toggle { margin-left: auto; }
 .landing-page .scroll-cue { bottom: 28px; }

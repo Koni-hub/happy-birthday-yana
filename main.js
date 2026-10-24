@@ -1005,16 +1005,23 @@
     group.scale.setScalar(scale || 1);
     group.userData.baseY = y;
     group.userData.baseX = x;
+    group.userData.baseScale = scale || 1;
+    group.userData.material = balloonMaterial;
     group.userData.phase = phase || Math.random() * 6.28;
+    // The landing page starts with the balloons tied down and dim, then the
+    // first gift sets them free.
+    balloonMaterial.transparent = true;
+    balloonMaterial.opacity = 1;
     parent.add(group);
     return group;
   }
 
   function addGift(parent, x, z, size, color, ribbonColor, rotation) {
     const group = new THREE.Group();
+    const boxMaterial = physical(color, { roughness: 0.36, metalness: 0.05, clearcoat: 0.7 });
     const box = new THREE.Mesh(
       new THREE.BoxGeometry(size, size * 0.8, size),
-      physical(color, { roughness: 0.36, metalness: 0.05, clearcoat: 0.7 })
+      boxMaterial
     );
     box.position.y = size * 0.4;
     group.add(box);
@@ -1027,30 +1034,58 @@
     ribbonB.position.y = size * 0.4;
     group.add(ribbonB);
 
+    // The lid lives in its own group so the landing-page gifts can actually
+    // open. It holds the lid panel, the bow loops and the knot.
+    const lid = new THREE.Group();
+    lid.position.y = size * 0.8;
+    group.add(lid);
+    const lidBox = new THREE.Mesh(
+      new THREE.BoxGeometry(size * 1.05, size * 0.17, size * 1.05),
+      boxMaterial
+    );
+    lidBox.position.y = size * 0.085;
+    lid.add(lidBox);
+
     for (const side of [-1, 1]) {
       const loop = new THREE.Mesh(new THREE.SphereGeometry(size * 0.16, 16, 12), ribbonMat);
       loop.scale.set(1.25, 0.62, 0.55);
-      loop.position.set(side * size * 0.14, size * 0.86, 0);
+      loop.position.set(side * size * 0.14, size * 0.06, 0);
       loop.rotation.z = side * 0.35;
-      group.add(loop);
+      lid.add(loop);
     }
     const knot = new THREE.Mesh(new THREE.SphereGeometry(size * 0.07, 12, 10), ribbonMat);
-    knot.position.y = size * 0.85;
-    group.add(knot);
+    knot.position.y = size * 0.05;
+    lid.add(knot);
+
+    // A soft glow marks the gift that is waiting to be opened.
+    const glow = glowSprite(ribbonColor, 0, size * 3.4, size * 3.4);
+    glow.position.y = size * 0.55;
+    group.add(glow);
 
     group.position.set(x, -0.38, z);
     group.rotation.y = rotation || 0;
     parent.add(group);
-    return group;
+    return {
+      group,
+      lid,
+      glow,
+      size,
+      lidBaseY: size * 0.8,
+      position: new THREE.Vector3(x, -0.38, z),
+      opened: false
+    };
   }
 
-  function addPetals(parent) {
+  function addPetals(parent, origin) {
     const materials = [
       physical(0xef9caf, { roughness: 0.3, emissive: 0x5b1e31, emissiveIntensity: 0.25, clearcoat: 1 }),
       physical(0xe4c08a, { roughness: 0.28, metalness: 0.5, clearcoat: 1 }),
       physical(0xc995a9, { roughness: 0.3, emissive: 0x3b1828, emissiveIntensity: 0.2, clearcoat: 1 })
     ];
     const petals = [];
+    const source = origin
+      ? new THREE.Vector3(origin[0], origin[1], origin[2])
+      : new THREE.Vector3(0, 2, 0);
     const positions = [
       [-1.5, 3.05, -0.75], [1.45, 2.9, -0.7], [-1.1, 4.0, -1.1],
       [1.15, 4.12, -1.15], [-1.62, 2.2, -0.35], [1.6, 2.32, -0.3],
@@ -1058,10 +1093,19 @@
     ];
     positions.forEach((pos, i) => {
       const heart = new THREE.Mesh(heartGeometry(rand(0.11, 0.19)), materials[i % materials.length]);
-      heart.position.set(pos[0], pos[1], pos[2]);
+      const target = new THREE.Vector3(pos[0], pos[1], pos[2]);
+      const start = source.clone().add(new THREE.Vector3(
+        rand(-0.16, 0.16),
+        rand(-0.08, 0.16),
+        rand(-0.16, 0.16)
+      ));
+      heart.position.copy(start);
+      heart.scale.setScalar(0.001);
       heart.rotation.set(rand(-0.5, 0.5), rand(-0.8, 0.8), rand(-0.25, 0.25));
       heart.userData.baseY = pos[1];
       heart.userData.phase = rand(0, 6.28);
+      heart.userData.target = target;
+      heart.userData.origin = start;
       parent.add(heart);
       petals.push(heart);
     });
@@ -1958,11 +2002,18 @@
       addBalloon(scene, 1.57, 2.64, -0.22, 0xd18c9f, 0.44, 5.1)
     ];
 
-    addGift(scene, -1.12, 0.64, 0.32, 0x5b2b41, 0xd9b477, -0.2);
-    addGift(scene, 1.13, 0.5, 0.27, 0x6a2f45, 0xe4c08a, 0.32);
-    addGift(scene, 0.87, 0.96, 0.18, 0x3b213f, 0xef9caf, -0.4);
+    const gifts = [
+      addGift(scene, -1.12, 0.64, 0.32, 0x5b2b41, 0xd9b477, -0.2),
+      addGift(scene, 1.13, 0.5, 0.27, 0x6a2f45, 0xe4c08a, 0.32),
+      addGift(scene, 0.87, 0.96, 0.18, 0x3b213f, 0xef9caf, -0.4)
+    ];
+    gifts.forEach((gift, index) => { gift.group.userData.giftIndex = index; });
 
-    const petals = addPetals(scene);
+    const petals = addPetals(scene, [
+      gifts[1].position.x,
+      gifts[1].position.y + 0.55,
+      gifts[1].position.z
+    ]);
 
     const girls = girlConfigs.map((config, index) => {
       const girl = createGirl(config, index);
@@ -1974,6 +2025,22 @@
     // Picking reads only these cheap proxy cylinders instead of the whole
     // sculpted figure, which used to cost hundreds of triangle tests per event.
     const hitAreas = girls.map(girl => girl.hitArea);
+
+    // Her cake begins unlit on the landing page: the third gift lights it.
+    girls.forEach(girl => {
+      girl.miniCake.flameGroup.visible = false;
+      girl.miniCake.flameGroup.scale.setScalar(0.001);
+      girl.miniCake.flameLight.intensity = 0;
+    });
+
+    // The little setup ritual before the surprise page: gift 1 releases the
+    // balloons, gift 2 lets the petals fly, gift 3 lights her candle.
+    const gate = {
+      step: 0,
+      progress: [0, 0, 0],
+      target: [0, 0, 0],
+      lid: [0, 0, 0]
+    };
 
     /* interaction state */
     const state = {
@@ -1991,7 +2058,8 @@
       dist: 9.25,
       targetDist: 9.25,
       visible: true,
-      onSelect: null
+      onSelect: null,
+      onGiftScreen: null
     };
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
@@ -2028,6 +2096,23 @@
       state.selected = -1;
       applySelectionUI();
       if (typeof state.onSelect === 'function') state.onSelect(-1, null);
+    }
+
+    function openGift(index) {
+      if (index !== gate.step || index < 0 || index >= gifts.length) return false;
+      gate.step = index + 1;
+      gate.target[index] = 1;
+      gifts[index].opened = true;
+      return true;
+    }
+
+    // Used by the "skip the setup" safety net: everything comes alive at once.
+    function completeGifts() {
+      gate.step = gifts.length;
+      gifts.forEach((gift, index) => {
+        gift.opened = true;
+        gate.target[index] = 1;
+      });
     }
 
     // Hover picking is throttled: pointermove can fire faster than the scene
@@ -2143,6 +2228,32 @@
       state.dist = damp(state.dist, state.targetDist, 3.2, dt);
       updateCamera(t, false);
 
+      // Gift reveal ramps. Everything is driven by one 0→1 value per gift so
+      // the setup ritual stays in sync with the guide UI.
+      gate.progress.forEach((value, index) => {
+        gate.progress[index] = damp(value, gate.target[index], 2.2, dt);
+      });
+
+      const balloonEase = gate.progress[0] * gate.progress[0] * (3 - 2 * gate.progress[0]);
+      const petalEase = gate.progress[1] * gate.progress[1] * (3 - 2 * gate.progress[1]);
+      const candleEase = gate.progress[2] * gate.progress[2] * (3 - 2 * gate.progress[2]);
+
+      gifts.forEach((gift, index) => {
+        gate.lid[index] = damp(gate.lid[index], gate.target[index], 3, dt);
+        const lidEase = gate.lid[index] * gate.lid[index] * (3 - 2 * gate.lid[index]);
+        gift.lid.position.y = gift.lidBaseY + lidEase * gift.size * 1.35;
+        gift.lid.rotation.z = lidEase * 0.85;
+        gift.lid.rotation.x = lidEase * -0.25;
+
+        let glowTarget = 0;
+        if (gift.opened) {
+          glowTarget = Math.max(0, 0.5 * (1 - lidEase));
+        } else if (index === gate.step) {
+          glowTarget = 0.17 + Math.sin(t * 2.4) * 0.06;
+        }
+        gift.glow.material.opacity = damp(gift.glow.material.opacity, glowTarget, 4, dt);
+      });
+
       girls.forEach((girl, index) => {
         const phase = girl.phase;
         const bob = reduceMotion ? 0 : Math.sin(t * 0.9 + phase) * 0.018;
@@ -2165,22 +2276,37 @@
         girl.miniCake.group.position.y = 2.11 + cakeBob;
 
         const flicker = 0.9 + Math.sin(t * 13 + phase * 8) * 0.09 + Math.sin(t * 21 + phase * 3) * 0.05;
-        girl.miniCake.flameGroup.scale.set(flicker, 0.9 + flicker * 0.12, flicker);
-        girl.miniCake.flameLight.intensity = 1.4 + flicker * 0.35;
+        const flame = girl.miniCake.flameGroup;
+        flame.visible = candleEase > 0.015;
+        const candleScale = 0.45 + candleEase * 0.55;
+        flame.scale.set(
+          flicker * candleScale,
+          (0.9 + flicker * 0.12) * candleScale,
+          flicker * candleScale
+        );
+        girl.miniCake.flameLight.intensity = (1.4 + flicker * 0.35) * candleEase;
       });
 
-      balloons.forEach((balloon, index) => {
+      balloons.forEach(balloon => {
+        const bob = reduceMotion ? 0 : Math.sin(t * 0.55 + balloon.userData.phase) * 0.08;
+        balloon.position.y = balloon.userData.baseY - (1 - balloonEase) * 2.1 + bob;
+        balloon.position.x = balloon.userData.baseX + (reduceMotion ? 0 : Math.sin(t * 0.3 + balloon.userData.phase) * 0.02);
+        balloon.scale.setScalar(balloon.userData.baseScale * (0.62 + 0.38 * balloonEase));
+        balloon.userData.material.opacity = 0.22 + 0.78 * balloonEase;
         if (reduceMotion) return;
-        balloon.position.y = balloon.userData.baseY + Math.sin(t * 0.55 + balloon.userData.phase) * 0.08;
         balloon.rotation.z = Math.sin(t * 0.35 + balloon.userData.phase) * 0.04;
         balloon.rotation.x = Math.cos(t * 0.28 + balloon.userData.phase) * 0.025;
       });
 
       petals.forEach(petal => {
+        const target = petal.userData.target;
+        const origin = petal.userData.origin;
+        petal.position.lerpVectors(origin, target, petalEase);
+        petal.scale.setScalar(0.001 + petalEase * 0.999);
         if (reduceMotion) return;
-        petal.position.y = petal.userData.baseY + Math.sin(t * 0.7 + petal.userData.phase) * 0.12;
-        petal.rotation.y += dt * 0.22;
-        petal.rotation.z = Math.sin(t * 0.5 + petal.userData.phase) * 0.18;
+        petal.position.y += Math.sin(t * 0.7 + petal.userData.phase) * 0.12 * petalEase;
+        petal.rotation.y += dt * 0.22 * petalEase;
+        petal.rotation.z = Math.sin(t * 0.5 + petal.userData.phase) * 0.18 * petalEase;
       });
 
       stars.rotation.y = t * 0.004;
@@ -2188,6 +2314,23 @@
       arch2.rotation.z = -t * 0.009;
       floorRing.rotation.z = t * 0.012;
       floorRing2.rotation.z = -t * 0.008;
+
+      if (typeof state.onGiftScreen === 'function') {
+        const projected = new THREE.Vector3();
+        state.onGiftScreen(gifts.map(gift => {
+          projected.set(
+            gift.position.x,
+            gift.position.y + gift.size * 1.05,
+            gift.position.z
+          );
+          projected.project(camera);
+          return {
+            x: projected.x * 0.5 + 0.5,
+            y: -projected.y * 0.5 + 0.5,
+            behind: projected.z > 1
+          };
+        }));
+      }
     }
 
     let shadowFrame = 0;
@@ -2221,9 +2364,13 @@
       camera,
       renderer,
       girls,
+      gifts,
+      gate,
       state,
       select,
       clear: clearSelection,
+      openGift,
+      completeGifts,
       update,
       render,
       resize,
@@ -2911,10 +3058,16 @@
   }
 
   let leavingPage = false;
+  let landingReady = false;
+  let nudgeLanding = function () {};
 
   function goToSurprise(event) {
     if (event && event.preventDefault) event.preventDefault();
     if (leavingPage) return;
+    if (!landingReady) {
+      nudgeLanding();
+      return;
+    }
     leavingPage = true;
     Sound.chime(784, 0.055);
     Sound.markEntry();
@@ -2934,7 +3087,9 @@
 
     if (!app.girls) return;
     app.girls.state.onSelect = (index) => {
-      if (index >= 0) goToSurprise();
+      if (index < 0) return;
+      if (landingReady) goToSurprise();
+      else nudgeLanding();
     };
 
     const stageCanvas = $('#girls-canvas');
@@ -2942,10 +3097,171 @@
       stageCanvas.addEventListener('keydown', event => {
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();
-          goToSurprise();
+          if (landingReady) goToSurprise();
+          else nudgeLanding();
         }
       });
     }
+  }
+
+  /* ————————————————————————————————
+     Landing gate — she sets up her own birthday
+     ———————————————————————————————— */
+  const GIFT_STEPS = [
+    {
+      name: 'the balloons',
+      hint: 'tap the glowing gift on the left',
+      action: 'Open gift one: release the balloons'
+    },
+    {
+      name: 'the petals',
+      hint: 'now the gift on the right',
+      action: 'Open gift two: let the petals fly'
+    },
+    {
+      name: 'her candle',
+      hint: 'one last gift, hidden behind her cake',
+      action: 'Open gift three: light her candle'
+    }
+  ];
+
+  function setupLandingGate() {
+    const layer = $('#landing-layer');
+    const guide = $('#setup-guide');
+    const hint = $('#setup-guide-hint');
+    const steps = $$('#setup-guide .setup-step');
+    const markers = $$('.gift-marker');
+    const cta = $('#landing-cta');
+    const skip = $('#landing-skip');
+    const hero = $('.hero');
+
+    // No gate markup (e.g. on wishes.html) means nothing to lock.
+    if (!layer || !hero || !markers.length) {
+      landingReady = true;
+      return;
+    }
+
+    const flow = { step: 0, done: false };
+
+    if (!app.girls) {
+      // Without WebGL there is no scene to set up. Never trap her here.
+      flow.step = 3;
+      unlockLanding(true);
+      return;
+    }
+
+    function screenPositions(positions) {
+      const rect = hero.getBoundingClientRect();
+      markers.forEach((marker, index) => {
+        const point = positions[index];
+        if (!point || point.behind) return;
+        marker.style.left = `${clamp(point.x, 0.06, 0.94) * rect.width}px`;
+        marker.style.top = `${clamp(point.y, 0.1, 0.9) * rect.height}px`;
+      });
+    }
+
+    function syncGuide() {
+      steps.forEach((step, index) => {
+        step.classList.toggle('is-done', index < flow.step);
+        step.classList.toggle('is-active', index === flow.step && !flow.done);
+      });
+      markers.forEach((marker, index) => {
+        marker.classList.toggle('is-active', index === flow.step && !flow.done);
+      });
+      if (hint) {
+        hint.textContent = flow.done
+          ? 'her birthday is ready ✦'
+          : GIFT_STEPS[flow.step].hint;
+      }
+      if (guide) guide.classList.toggle('is-complete', flow.done);
+    }
+
+    function unlockLanding(instant) {
+      if (flow.done) return;
+      flow.done = true;
+      flow.step = 3;
+      landingReady = true;
+      document.body.classList.add('is-birthday-ready');
+      syncGuide();
+      if (skip) skip.hidden = true;
+      if (cta) {
+        cta.hidden = false;
+        cta.classList.add('is-in');
+      }
+      if (!instant) {
+        Sound.celebration();
+        if (app.confetti) app.confetti.burst(130, true);
+      }
+    }
+
+    function tryOpenGift(index) {
+      if (flow.done || leavingPage) return;
+      if (index !== flow.step) {
+        showToast('one gift at a time, my love ✦', 2200);
+        return;
+      }
+      if (!app.girls.openGift(index)) return;
+
+      flow.step = index + 1;
+      Sound.ui('success');
+
+      if (index === 1 && app.confetti) {
+        app.confetti.burst(reducedEffects ? 45 : 85, true);
+      }
+      if (index === 2) {
+        Sound.chime(987.77, 0.05);
+      }
+
+      syncGuide();
+
+      if (flow.step >= GIFT_STEPS.length) {
+        window.setTimeout(() => unlockLanding(false), 900);
+      }
+    }
+
+    app.girls.state.onGiftScreen = screenPositions;
+
+    markers.forEach((marker, index) => {
+      marker.setAttribute('aria-label', GIFT_STEPS[index].action);
+      marker.addEventListener('click', () => tryOpenGift(index));
+      marker.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          tryOpenGift(index);
+        }
+      });
+    });
+
+    if (cta) cta.addEventListener('click', goToSurprise);
+
+    nudgeLanding = function () {
+      if (leavingPage) return;
+      if (landingReady) {
+        goToSurprise();
+        return;
+      }
+      showToast('set up her birthday first — tap the glowing gift ✦', 2800);
+      if (guide) {
+        guide.classList.remove('is-nudged');
+        void guide.offsetWidth;
+        guide.classList.add('is-nudged');
+      }
+    };
+
+    if (skip) {
+      skip.addEventListener('click', () => {
+        if (flow.done) return;
+        app.girls.completeGifts();
+        flow.step = 3;
+        unlockLanding(true);
+        showToast('her birthday is ready ✦', 2400);
+      });
+      window.setTimeout(() => {
+        if (!flow.done) skip.hidden = false;
+      }, 25000);
+    }
+
+    syncGuide();
   }
 
   function setupReferenceViewer() {
@@ -3673,6 +3989,7 @@
 
       setupNavigation();
       setupHeroUI();
+      setupLandingGate();
       setupReferenceViewer();
       setupWishUI();
       setupCarousel();
