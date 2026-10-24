@@ -54,32 +54,12 @@
     let bus = null;
     let sfx = null;
     let sfxOut = null;
-    let sfxBuffers = null;
-    let sfxLoading = null;
-    let sfxIdleHandle = 0;
     let musicTimer = null;
     let loopActive = false;
     let musicStarted = false;
     const STORAGE_KEY = 'yana-music-enabled';
     const LEGACY_STORAGE_KEY = 'yana-sound-enabled';
     const ENTRY_KEY = 'yana-music-entry';
-    // UI samples by SoundShelfStudio, free for use under the Pixabay
-    // Content License.
-    const SFX_FILES = {
-      tap: 'assets/sfx/ui-click.mp3',
-      hover: 'assets/sfx/ui-hover.mp3',
-      open: 'assets/sfx/ui-open.mp3',
-      close: 'assets/sfx/ui-close.mp3',
-      swipe: 'assets/sfx/ui-swipe.mp3'
-    };
-    const SAMPLE_SETTINGS = {
-      tap: { volume: 0.3, rate: 1, max: 0.9 },
-      toggle: { file: 'tap', volume: 0.2, rate: 1.18, max: 0.45 },
-      hover: { volume: 0.13, rate: 1.04, max: 0.32 },
-      open: { volume: 0.075, rate: 1, max: 1.25 },
-      close: { volume: 0.07, rate: 1, max: 1 },
-      swipe: { volume: 0.11, rate: 1, max: 1 }
-    };
     const musicActive = [];
     const sfxActive = [];
 
@@ -175,7 +155,7 @@
       reverb.connect(wet);
       wet.connect(master);
 
-      // Crisp interface layer: bypass the music fade and low-pass so UI samples
+      // Crisp interface layer: bypass the music fade and low-pass so UI sounds
       // stay bright and audible even during the first music swell.
       sfxOut = ctx.createGain();
       sfxOut.gain.value = 0.5;
@@ -187,21 +167,6 @@
       sfxSend.gain.value = 0.05;
       sfx.connect(sfxSend);
       sfxSend.connect(reverb);
-
-      scheduleSfxLoad();
-    }
-
-    function scheduleSfxLoad() {
-      if (sfxLoading || sfxIdleHandle) return;
-      const run = () => {
-        sfxIdleHandle = 0;
-        loadSfx();
-      };
-      if (typeof window.requestIdleCallback === 'function') {
-        sfxIdleHandle = window.requestIdleCallback(run, { timeout: 1600 });
-      } else {
-        sfxIdleHandle = window.setTimeout(run, 350);
-      }
     }
 
     function track(source, list) {
@@ -415,7 +380,6 @@
       if (!sfxEnabled) return;
       init();
       if (!ctx) return;
-      loadSfx();
       if (ctx.state === 'running') {
         play();
         return;
@@ -544,127 +508,6 @@
       track(source, sfxActive);
     }
 
-    function decodeAudio(arrayBuffer) {
-      return new Promise((resolve, reject) => {
-        const result = ctx.decodeAudioData(arrayBuffer, resolve, reject);
-        if (result && result.then) result.then(resolve, reject);
-      });
-    }
-
-    function trimAndNormalize(buffer, maxSeconds) {
-      const channels = buffer.numberOfChannels;
-      const length = maxSeconds
-        ? Math.min(buffer.length, Math.ceil(buffer.sampleRate * maxSeconds))
-        : buffer.length;
-      let peak = 0;
-      for (let channel = 0; channel < channels; channel++) {
-        const data = buffer.getChannelData(channel);
-        for (let i = 0; i < length; i++) {
-          const value = Math.abs(data[i]);
-          if (value > peak) peak = value;
-        }
-      }
-      if (peak < 0.001) return buffer;
-
-      const threshold = Math.max(0.002, peak * 0.012);
-      let start = 0;
-      let end = length - 1;
-      while (start < length) {
-        let loud = false;
-        for (let channel = 0; channel < channels; channel++) {
-          if (Math.abs(buffer.getChannelData(channel)[start]) > threshold) { loud = true; break; }
-        }
-        if (loud) break;
-        start++;
-      }
-      while (end > start) {
-        let loud = false;
-        for (let channel = 0; channel < channels; channel++) {
-          if (Math.abs(buffer.getChannelData(channel)[end]) > threshold) { loud = true; break; }
-        }
-        if (loud) break;
-        end--;
-      }
-      if (start >= end) return buffer;
-
-      const pad = Math.floor(buffer.sampleRate * 0.008);
-      start = Math.max(0, start - pad);
-      end = Math.min(length - 1, end + pad);
-      const trimmed = ctx.createBuffer(channels, end - start + 1, buffer.sampleRate);
-      let trimmedPeak = 0;
-      for (let channel = 0; channel < channels; channel++) {
-        const source = buffer.getChannelData(channel).subarray(start, end + 1);
-        trimmed.getChannelData(channel).set(source);
-        for (let i = 0; i < source.length; i++) {
-          const value = Math.abs(source[i]);
-          if (value > trimmedPeak) trimmedPeak = value;
-        }
-      }
-      if (trimmedPeak > 0) {
-        const gain = 0.9 / trimmedPeak;
-        for (let channel = 0; channel < channels; channel++) {
-          const data = trimmed.getChannelData(channel);
-          for (let i = 0; i < data.length; i++) data[i] *= gain;
-        }
-      }
-      return trimmed;
-    }
-
-    function loadSfx() {
-      if (sfxLoading) return sfxLoading;
-      if (!ctx || !window.fetch) return Promise.resolve();
-      if (!sfxBuffers) sfxBuffers = {};
-      const keys = Object.keys(SFX_FILES).filter(key => !sfxBuffers[key]);
-      if (!keys.length) return Promise.resolve();
-
-      const loadOne = key => {
-        const settings = SAMPLE_SETTINGS[key];
-        const limit = settings && settings.max ? settings.max + 0.35 : 0;
-        return window.fetch(SFX_FILES[key])
-          .then(response => {
-            if (!response.ok) throw new Error('SFX load failed');
-            return response.arrayBuffer();
-          })
-          .then(buffer => decodeAudio(buffer))
-          .then(buffer => {
-            if (buffer) sfxBuffers[key] = trimAndNormalize(buffer, limit);
-          })
-          .catch(() => {});
-      };
-
-      // Load the small interface samples in parallel.
-      sfxLoading = Promise.all(keys.map(loadOne))
-        .then(() => { sfxLoading = null; });
-      return sfxLoading;
-    }
-
-    function playSample(kind, pan) {
-      if (!ctx || !sfx || !sfxBuffers) return false;
-      const settings = SAMPLE_SETTINGS[kind];
-      if (!settings) return false;
-      const buffer = sfxBuffers[settings.file || kind];
-      if (!buffer) return false;
-
-      const t = ctx.currentTime + 0.003;
-      const source = ctx.createBufferSource();
-      const gain = ctx.createGain();
-      const rate = settings.rate * (0.985 + Math.random() * 0.03);
-      const maxDuration = Math.min(settings.max || buffer.duration, buffer.duration / rate);
-
-      source.buffer = buffer;
-      source.playbackRate.setValueAtTime(rate, t);
-      gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.exponentialRampToValueAtTime(settings.volume, t + 0.004);
-      gain.gain.setValueAtTime(settings.volume, t + Math.max(0.01, maxDuration - 0.03));
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + maxDuration);
-      source.connect(gain);
-      connectSfx(gain, pan, t);
-      source.start(t);
-      source.stop(t + maxDuration);
-      track(source, sfxActive);
-      return true;
-    }
-
     function playUi(kind, pan) {
       if (!ctx || !sfx) return;
       const t = ctx.currentTime + 0.004;
@@ -706,12 +549,8 @@
       }
     }
 
-    function playUiEntry(kind, pan) {
-      if (!playSample(kind, pan)) playUi(kind, pan);
-    }
-
     function ui(kind, pan) {
-      withSfx(() => playUiEntry(kind, pan));
+      withSfx(() => playUi(kind, pan));
     }
 
     return {
@@ -728,12 +567,9 @@
       celebration,
       blow,
       ui,
-      // Build the audio graph and decode the UI samples while the loader is
-      // still up, so the first hover does not pay for it in one hitch.
-      warm: () => {
-        init();
-        if (ctx) loadSfx();
-      },
+      // Build the audio graph while the loader is still up, so the first
+      // hover does not pay for it in one hitch.
+      warm: () => init(),
       isMusicEnabled: () => musicEnabled
     };
   })();
@@ -3657,7 +3493,7 @@
 
     if (Loader) Loader.setStatus('gathering little bits of sunshine');
     await afterPaint();
-    // Audio graph + sample decode start now instead of on the first hover.
+    // Audio graph starts now instead of on the first hover.
     Sound.warm();
 
     if (document.fonts && document.fonts.ready) {
