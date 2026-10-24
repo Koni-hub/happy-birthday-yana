@@ -3210,6 +3210,156 @@
     });
   }
 
+  // Chapter four — five little love notes. The copy lives here so the
+  // messages stay easy to edit in one place.
+  const LITTLE_NOTES = [
+    {
+      kicker: 'note one',
+      title: 'when life feels heavy',
+      copy: "it's okay to pause, my love. put it down, breathe for a while, and let me hold the heavy parts until you're ready."
+    },
+    {
+      kicker: 'note two',
+      title: 'when you doubt yourself',
+      copy: "i already know how this one ends: you doubting yourself, and me still completely certain about you."
+    },
+    {
+      kicker: 'note three',
+      title: 'when you feel lonely',
+      copy: 'if the room feels quiet, keep this one open. i am right here, and i am always happy when you come back.'
+    },
+    {
+      kicker: 'note four',
+      title: 'when you forget how special you are',
+      copy: "you notice the small things and you remember what people tell you. that has always been your magic, my love."
+    },
+    {
+      kicker: 'note five',
+      title: 'when you need a little hope',
+      copy: "today has not finished writing tomorrow yet. there is still so much good coming your way."
+    }
+  ];
+
+  function setupLittleThings() {
+    const section = $('#little-things');
+    const grid = $('#lt-grid');
+    const reader = $('#lt-reader');
+    if (!section || !grid || !reader) return;
+
+    const cards = $$('.lt-note', grid);
+    const kicker = $('#lt-reader-kicker');
+    const title = $('#lt-reader-title');
+    const copy = $('#lt-reader-copy');
+    const another = $('#lt-another');
+    const sparks = $('.lt-sparks', reader);
+    const finalButton = $('#lt-final-button');
+    const finalMessage = $('#lt-final');
+    let openIndex = -1;
+
+    // The hidden entrance state is added by JS, so with scripts off the
+    // notes are simply there, visible.
+    if (!reduceMotion) section.classList.add('lt-anim');
+
+    if ('IntersectionObserver' in window) {
+      const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (!entry.isIntersecting) return;
+          section.classList.add('is-inview');
+          observer.disconnect();
+        });
+      }, { threshold: 0.12 });
+      observer.observe(section);
+    } else {
+      section.classList.add('is-inview');
+    }
+
+    function burstSparks() {
+      if (!sparks || reduceMotion || reducedEffects) return;
+      for (let i = 0; i < 9; i++) {
+        const spark = document.createElement('span');
+        spark.className = 'lt-spark';
+        spark.textContent = i % 3 === 0 ? '♡' : '✦';
+        spark.style.setProperty('--dx', Math.round(rand(-95, 95)) + 'px');
+        spark.style.setProperty('--dy', Math.round(rand(-125, -35)) + 'px');
+        spark.style.animationDelay = (i * 0.05).toFixed(3) + 's';
+        sparks.appendChild(spark);
+        spark.addEventListener('animationend', () => spark.remove(), { once: true });
+      }
+    }
+
+    function openNote(index) {
+      const note = LITTLE_NOTES[index];
+      if (!note) return;
+      openIndex = index;
+      if (kicker) kicker.textContent = '✦ ' + note.kicker + ' ✦';
+      if (title) title.textContent = note.title;
+      if (copy) copy.textContent = note.copy;
+      cards.forEach((card, i) => card.setAttribute('aria-expanded', i === index ? 'true' : 'false'));
+      grid.classList.add('has-open');
+      reader.hidden = false;
+      reader.focus({ preventScroll: true });
+      if (reader.scrollIntoView) {
+        reader.scrollIntoView({ block: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' });
+      }
+      burstSparks();
+      Sound.ui('open', 0);
+    }
+
+    function closeNote() {
+      if (reader.hidden) return;
+      const previous = openIndex;
+      openIndex = -1;
+      reader.hidden = true;
+      grid.classList.remove('has-open');
+      cards.forEach(card => card.setAttribute('aria-expanded', 'false'));
+      if (sparks) sparks.innerHTML = '';
+      Sound.ui('close', 0);
+      return previous;
+    }
+
+    cards.forEach((card, index) => {
+      card.addEventListener('click', () => {
+        if (openIndex === index) {
+          const previous = closeNote();
+          if (cards[previous]) cards[previous].focus();
+          return;
+        }
+        openNote(index);
+      });
+    });
+
+    if (another) {
+      another.addEventListener('click', () => {
+        const previous = closeNote();
+        const next = cards[(previous + 1) % cards.length];
+        if (next) next.focus();
+      });
+    }
+
+    document.addEventListener('keydown', event => {
+      if (event.key !== 'Escape' || reader.hidden) return;
+      event.preventDefault();
+      const previous = closeNote();
+      if (cards[previous]) cards[previous].focus();
+    });
+
+    if (finalButton && finalMessage) {
+      finalButton.addEventListener('click', () => {
+        const isExpanded = finalButton.getAttribute('aria-expanded') === 'true';
+        if (isExpanded) {
+          finalMessage.hidden = true;
+          finalButton.setAttribute('aria-expanded', 'false');
+          Sound.ui('close', 0);
+          finalButton.focus({ preventScroll: true });
+        } else {
+          finalMessage.hidden = false;
+          finalButton.setAttribute('aria-expanded', 'true');
+          Sound.chime(659.25, 0.05);
+        }
+      });
+    }
+  }
+
   function setupSoundUI() {
     const button = $('#sound-toggle');
     if (!button) return;
@@ -3528,6 +3678,7 @@
       setupCarousel();
       setupLightbox();
       setupPersonalNote();
+      setupLittleThings();
       setupSoundUI();
       setupInteractionSounds();
       setupKissButton();

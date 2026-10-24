@@ -8,7 +8,7 @@
   <title>Your Birthday Wish · Yana ✦</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%82%3C/text%3E%3C/svg%3E" />
   <link rel="preload" href="vendor/three.global.js" as="script" />
-  <link rel="stylesheet" href="styles.css?v=20" />
+  <link rel="stylesheet" href="styles.css?v=25" />
 </head>
 <body class="wishes-page">
   <noscript><div class="noscript">This little birthday world needs JavaScript to come alive. Please enable it and refresh. ♥</div></noscript>
@@ -31,7 +31,8 @@
       <a href="index.html" data-nav="girls">01 <span>The girl</span></a>
       <a href="#wish" data-nav="wish" class="is-active">02 <span>Wish</span></a>
       <a href="#memories" data-nav="memories">03 <span>Memories</span></a>
-      <a href="#letter" data-nav="letter">04 <span>Love</span></a>
+      <a href="#little-things" data-nav="littlethings">04 <span>Notes</span></a>
+      <a href="#letter" data-nav="letter">05 <span>Love</span></a>
     </nav>
     <button class="sound-toggle" id="sound-toggle" type="button" aria-pressed="true" aria-label="Turn birthday music off">
       <span class="sound-bars" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -43,7 +44,8 @@
     <a href="index.html" data-dot="girls" aria-label="The birthday girl"><span>01</span></a>
     <a href="#wish" data-dot="wish" class="is-active" aria-label="Make a wish"><span>02</span></a>
     <a href="#memories" data-dot="memories" aria-label="Memories"><span>03</span></a>
-    <a href="#letter" data-dot="letter" aria-label="A letter for you"><span>04</span></a>
+    <a href="#little-things" data-dot="littlethings" aria-label="Take one with you"><span>04</span></a>
+    <a href="#letter" data-dot="letter" aria-label="A letter for you"><span>05</span></a>
   </aside>
 
   <main>
@@ -177,11 +179,102 @@
 
       <div class="carousel-footer">
         <p class="carousel-hint"><span>↔</span> drag to spin · tap a photo to hold it closer</p>
-        <a class="text-link dark-link" href="#letter">One last little thing <span>→</span></a>
+        <a class="text-link dark-link" href="#little-things">Some words for you <span>→</span></a>
       </div>
     </section>
 
-    <!-- 04 — LOVE LETTER -->
+    <!-- 04 — LITTLE THINGS -->
+    <section class="little-things" id="little-things" data-section="littlethings">
+      <div class="lt-stars" aria-hidden="true"></div>
+      <div class="lt-petals" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+
+      <div class="lt-inner">
+        <header class="lt-heading">
+          <p class="eyebrow reveal"><span class="eyebrow-star">✦</span> Chapter four · little reminders</p>
+          <h2 class="section-title">take one with you,<br /><em>my love</em></h2>
+          <p class="lede lt-lede">little reminders for the days you need them most.</p>
+        </header>
+
+        <div class="lt-grid" id="lt-grid">
+          <button class="lt-note" style="--i:0; --tilt:-1.7deg" type="button" data-note="0" aria-expanded="false" aria-controls="lt-reader">
+            <span class="lt-note-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" role="presentation"><path d="M12 20.5C7.4 17 3 13.7 3 9.9 3 7.2 5.1 5.4 7.6 5.4c1.7 0 3.2.9 4.4 2.5 1.2-1.6 2.7-2.5 4.4-2.5 2.5 0 4.6 1.8 4.6 4.5 0 3.8-4.4 7.1-9 10.6Z" /></svg>
+            </span>
+            <span class="lt-note-kicker">note one</span>
+            <span class="lt-note-title">when life feels heavy</span>
+            <span class="lt-note-hint">open it <span aria-hidden="true">♡</span></span>
+          </button>
+
+          <button class="lt-note" style="--i:1; --tilt:1.4deg" type="button" data-note="1" aria-expanded="false" aria-controls="lt-reader">
+            <span class="lt-note-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" role="presentation"><path d="M12 3.5 14.1 9l5.9.5-4.5 3.9 1.4 5.8L12 16l-4.9 3.2 1.4-5.8L4 9.5 9.9 9 12 3.5Z" /></svg>
+            </span>
+            <span class="lt-note-kicker">note two</span>
+            <span class="lt-note-title">when you doubt yourself</span>
+            <span class="lt-note-hint">open it <span aria-hidden="true">♡</span></span>
+          </button>
+
+          <button class="lt-note" style="--i:2; --tilt:-1.2deg" type="button" data-note="2" aria-expanded="false" aria-controls="lt-reader">
+            <span class="lt-note-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" role="presentation"><path d="M19.5 14.6A7.7 7.7 0 0 1 9.4 4.5a7.7 7.7 0 1 0 10.1 10.1Z" /><path d="M17.5 4.2h2.6M18.8 2.9v2.6" /></svg>
+            </span>
+            <span class="lt-note-kicker">note three</span>
+            <span class="lt-note-title">when you feel lonely</span>
+            <span class="lt-note-hint">open it <span aria-hidden="true">♡</span></span>
+          </button>
+
+          <button class="lt-note" style="--i:3; --tilt:1.8deg" type="button" data-note="3" aria-expanded="false" aria-controls="lt-reader">
+            <span class="lt-note-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" role="presentation"><path d="M12 20.8V9.6" /><path d="M12 12.4c-3.6 0-6-2.2-6-5.6 3.6 0 6 2.1 6 5.6Z" /><path d="M12 15.2c3.6 0 6-2.2 6-5.6-3.6 0-6 2.1-6 5.6Z" /></svg>
+            </span>
+            <span class="lt-note-kicker">note four</span>
+            <span class="lt-note-title">when you forget how special you are</span>
+            <span class="lt-note-hint">open it <span aria-hidden="true">♡</span></span>
+          </button>
+
+          <button class="lt-note" style="--i:4; --tilt:-1.5deg" type="button" data-note="4" aria-expanded="false" aria-controls="lt-reader">
+            <span class="lt-note-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" role="presentation"><path d="M5 14.5A6.5 6.5 0 0 1 16.4 7a5.2 5.2 0 1 1-1.7 10.1H6.4" /><path d="M9 20.5h7" /></svg>
+            </span>
+            <span class="lt-note-kicker">note five</span>
+            <span class="lt-note-title">when you need a little hope</span>
+            <span class="lt-note-hint">open it <span aria-hidden="true">♡</span></span>
+          </button>
+        </div>
+
+        <div class="lt-reader" id="lt-reader" role="region" aria-labelledby="lt-reader-title" tabindex="-1" hidden>
+          <article class="lt-reader-card">
+            <span class="lt-sparks" aria-hidden="true"></span>
+            <p class="lt-reader-kicker" id="lt-reader-kicker">✦ note one ✦</p>
+            <h3 class="lt-reader-title" id="lt-reader-title">when life feels heavy</h3>
+            <p class="lt-reader-copy" id="lt-reader-copy"></p>
+            <div class="lt-reader-actions">
+              <button class="note-button" id="lt-another" type="button">
+                <span class="note-button-star" aria-hidden="true">✦</span>
+                <span>Choose another note</span>
+                <span class="note-button-arrow" aria-hidden="true">→</span>
+              </button>
+            </div>
+          </article>
+        </div>
+
+        <div class="lt-final">
+          <button class="note-button lt-final-button" id="lt-final-button" type="button" aria-expanded="false" aria-controls="lt-final">
+            <span class="note-button-star" aria-hidden="true">✦</span>
+            <span>one last thing, my love ♡</span>
+            <span class="note-button-arrow" aria-hidden="true">↓</span>
+          </button>
+          <div class="lt-final-message" id="lt-final" hidden>
+            <p>and those are my five little reminders, saved here for the days that get a little too loud. whenever you need one, it will still be right where you left it.</p>
+            <p class="lt-final-whisper">every word of them is true, yana. ♡</p>
+          </div>
+
+          <a class="text-link lt-forward" href="#letter">The letter is waiting <span>→</span></a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 05 — LOVE LETTER -->
     <section class="letter" id="letter" data-section="letter">
       <div class="letter-stars" aria-hidden="true"></div>
       <div class="letter-heart" aria-hidden="true">
@@ -311,6 +404,6 @@
     })();
   </script>
   <script src="vendor/three.global.js" defer></script>
-  <script src="main.js?v=20" defer></script>
+  <script src="main.js?v=25" defer></script>
 </body>
 </html>
