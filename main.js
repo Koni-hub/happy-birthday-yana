@@ -3170,7 +3170,7 @@
       });
       if (hint) {
         hint.textContent = (flow.done || flow.step >= GIFT_STEPS.length)
-          ? 'her birthday is ready ✦'
+          ? 'her birthday is ready - Click the cake candle✦'
           : GIFT_STEPS[flow.step].hint;
       }
       if (guide) guide.classList.toggle('is-complete', flow.done);
