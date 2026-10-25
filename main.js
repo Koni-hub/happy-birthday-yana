@@ -3120,7 +3120,7 @@
     },
     {
       name: 'her candle',
-      hint: 'one last gift, hidden behind her cake',
+      hint: 'one last gift, left of the second gift',
       action: 'Open gift three: light her candle'
     }
   ];
