@@ -3366,11 +3366,15 @@
     let targetAngle = angle;
     let dragging = false;
     let moved = 0;
+    let startX = 0;
     let lastX = 0;
     let hovered = false;
     let visible = true;
     let suppressedClick = false;
     let swipeSounded = false;
+    // Below this, a touch is a tap even if the sensor reports a few jittery
+    // in-between readings — real taps rarely land exactly on the first pixel.
+    const TAP_THRESHOLD = 10;
 
     const visibilityObserver = new IntersectionObserver(entries => {
       entries.forEach(entry => { visible = entry.isIntersecting; });
@@ -3382,6 +3386,7 @@
       dragging = true;
       moved = 0;
       swipeSounded = false;
+      startX = event.clientX;
       lastX = event.clientX;
       carousel.classList.add('is-grabbing');
       try { carousel.setPointerCapture(event.pointerId); } catch (e) {}
@@ -3391,8 +3396,11 @@
       if (!dragging) return;
       const dx = event.clientX - lastX;
       lastX = event.clientX;
-      moved += Math.abs(dx);
-      if (moved > 5) suppressedClick = true;
+      // Net distance from where the finger/cursor first landed — not the sum
+      // of every in-between reading, which a touchscreen's natural jitter
+      // can push past a tiny threshold even while the finger stays put.
+      moved = Math.abs(event.clientX - startX);
+      if (moved > TAP_THRESHOLD) suppressedClick = true;
       if (!swipeSounded && moved > 22) {
         swipeSounded = true;
         const width = window.innerWidth || 1;

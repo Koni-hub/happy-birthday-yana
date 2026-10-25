@@ -1397,7 +1397,7 @@ body.is-ready .hero .title-name > span {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 5vw;
+  padding: 2vw;
   opacity: 0;
   visibility: hidden;
   background: rgba(10, 6, 14, 0.82);
@@ -1411,7 +1411,7 @@ body.is-ready .hero .title-name > span {
   flex-direction: column;
   align-items: center;
   gap: 1.1rem;
-  max-width: min(90vw, 620px);
+  max-width: min(96vw, 1100px);
   margin: 0;
   transform: scale(0.96) translateY(10px);
   transition: transform 0.5s var(--ease);
@@ -1419,7 +1419,7 @@ body.is-ready .hero .title-name > span {
 .lightbox.is-open .lightbox-figure { transform: none; }
 .lightbox-figure img {
   max-width: 100%;
-  max-height: 74svh;
+  max-height: 90svh;
   width: auto;
   object-fit: contain;
   border: 9px solid #fffaf2;
@@ -2682,8 +2682,9 @@ body.is-leaving .site-header { opacity: 0; transition: opacity 0.35s ease; }
   .photo-tape { width: 58px; height: 17px; top: -6px; }
   .carousel-footer { flex-direction: column; gap: 14px; padding: 0.5rem 20px 0; text-align: center; }
   .carousel-hint { line-height: 1.6; }
-  .lightbox { padding: 4vw; }
-  .lightbox-figure img { max-height: 68svh; border-width: 6px; border-bottom-width: 42px; }
+  .lightbox { padding: 2vw; }
+  .lightbox-figure { max-width: 97vw; }
+  .lightbox-figure img { max-height: 82svh; border-width: 6px; border-bottom-width: 42px; }
   .lightbox-figure figcaption { bottom: 12px; font-size: 20px; }
   .lightbox-close { top: 15px; right: 15px; }
 
